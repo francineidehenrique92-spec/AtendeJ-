@@ -1,0 +1,6 @@
+{
+  "name": "GastroVoz AI",
+  "description": "High-performance restaurant SaaS with AI voice ordering for waiters, QR code customer ordering, and real-time manager dashboard.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": []
+}

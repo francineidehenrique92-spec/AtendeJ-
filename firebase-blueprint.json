@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Restaurant": {
+      "title": "Restaurant",
+      "description": "Restaurant configuration and metadata",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "activeMenuId": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Menu": {
+      "title": "Menu",
+      "description": "A collection of items offered by the restaurant",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "restaurantId": { "type": "string" },
+        "items": { "type": "array" }
+      },
+      "required": ["name", "restaurantId"]
+    },
+    "Table": {
+      "title": "Table",
+      "description": "Status and current activity of a dining table",
+      "type": "object",
+      "properties": {
+        "number": { "type": "integer" },
+        "status": { "type": "string", "enum": ["free", "busy", "alert", "billing"] },
+        "currentOrderId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["number", "status"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Details of a customer order",
+      "type": "object",
+      "properties": {
+        "tableId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "preparing", "delivered", "paid"] },
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "type": { "type": "string", "enum": ["waiter", "customer"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tableId", "status", "items", "total"]
+    }
+  },
+  "firestore": {
+    "/restaurants/{restaurantId}": { "schema": "Restaurant", "description": "Restaurant settings" },
+    "/restaurants/{restaurantId}/menus/{menuId}": { "schema": "Menu", "description": "Menus for a restaurant" },
+    "/restaurants/{restaurantId}/tables/{tableId}": { "schema": "Table", "description": "Tables in a restaurant" },
+    "/restaurants/{restaurantId}/orders/{orderId}": { "schema": "Order", "description": "Orders for a restaurant" }
+  }
+}
