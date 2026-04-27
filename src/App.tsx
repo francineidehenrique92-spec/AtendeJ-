@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useParams } from 'react-router-dom';
-import { LayoutGrid, Package, ChefHat, Utensils, QrCode, ClipboardList, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutGrid, Package, ChefHat, Utensils, QrCode, ClipboardList, LogOut, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import Dashboard from './components/Manager/Dashboard';
 import InventoryManager from './components/Manager/Inventory';
 import TableManager from './components/Manager/Tables';
@@ -11,6 +12,7 @@ import VoiceTerminal from './components/Waiter/VoiceTerminal';
 import CustomerMenu from './components/Customer/Menu';
 import { initializeMockData } from './mockData';
 import { cn } from './lib/utils';
+import { Table } from './types';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -59,6 +61,7 @@ export default function App() {
             <Route path="/inventory" element={<InventoryManager />} />
             <Route path="/kds" element={<KDS />} />
             <Route path="/waiter" element={<VoiceTerminal />} />
+            <Route path="/customer" element={<CustomerLanding />} />
             <Route path="/customer/:tableId" element={<CustomerMenuWrapper />} />
             <Route path="*" element={<Dashboard />} />
           </Routes>
@@ -70,6 +73,8 @@ export default function App() {
 
 function Nav({ collapsed, setCollapsed }: { collapsed: boolean, setCollapsed: (val: boolean) => void }) {
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   if (location.pathname.startsWith('/customer')) return null;
 
   const menuItems = [
@@ -81,10 +86,51 @@ function Nav({ collapsed, setCollapsed }: { collapsed: boolean, setCollapsed: (v
   ];
 
   return (
-    <nav className={cn(
-      "bg-white border-r border-gray-100 flex flex-col p-6 gap-2 shadow-sm relative z-10 transition-all duration-300",
-      collapsed ? "md:w-20 px-4" : "md:w-64"
-    )}>
+    <>
+      {/* Mobile Header */}
+      <div className="md:hidden bg-white border-b border-gray-100 p-4 flex justify-between items-center sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center text-white font-black text-sm">AI</div>
+          <h1 className="font-bold text-gray-900">GastroVoz</h1>
+        </div>
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-gray-500">
+          <LayoutGrid size={24} />
+        </button>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 bg-white z-[60] flex flex-col p-8 md:hidden animate-in fade-in slide-in-from-top duration-300">
+          <div className="flex justify-between items-center mb-12">
+            <h2 className="text-2xl font-black italic">MENU</h2>
+            <button onClick={() => setIsMobileMenuOpen(false)} className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center">
+              <X size={24} />
+            </button>
+          </div>
+          <div className="flex flex-col gap-4">
+            {menuItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={cn(
+                  "flex items-center gap-4 p-5 rounded-2xl font-bold transition-all text-lg",
+                  location.pathname === item.path ? "bg-orange-600 text-white shadow-xl shadow-orange-100" : "bg-gray-50 text-gray-500"
+                )}
+              >
+                <item.icon size={24} />
+                {item.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Sidebar */}
+      <nav className={cn(
+        "hidden md:flex bg-white border-r border-gray-100 flex-col p-6 gap-2 shadow-sm relative z-10 transition-all duration-300",
+        collapsed ? "md:w-20 px-4" : "md:w-64"
+      )}>
       <div className={cn("flex items-center gap-3 py-6 overflow-hidden", collapsed ? "justify-center" : "")}>
         <div className="w-10 h-10 bg-orange-600 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-black text-xl tracking-tighter">AI</div>
         {!collapsed && (
@@ -140,10 +186,62 @@ function Nav({ collapsed, setCollapsed }: { collapsed: boolean, setCollapsed: (v
         </div>
       </div>
     </nav>
+    </>
   );
 }
 
 function CustomerMenuWrapper() {
   const { tableId } = useParams();
   return <CustomerMenu tableId={tableId || 'table-1'} />;
+}
+
+function CustomerLanding() {
+  const [tables, setTables] = useState<Table[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, 'restaurants', 'default', 'tables'), orderBy('number', 'asc'));
+    return onSnapshot(q, (snap) => {
+      setTables(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Table)));
+      setLoading(false);
+    });
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white p-8 flex flex-col items-center">
+      <header className="text-center mb-12">
+        <div className="w-16 h-16 bg-orange-600 rounded-3xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-4 shadow-2xl shadow-orange-900/20">GV</div>
+        <h1 className="text-4xl font-black italic tracking-tighter uppercase">Seja Bem-vindo</h1>
+        <p className="text-orange-500 font-bold uppercase tracking-widest text-[10px] mt-2">Escolha sua mesa para começar</p>
+      </header>
+
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 w-full max-w-lg">
+          {tables.map(table => (
+            <Link 
+              key={table.id}
+              to={`/customer/${table.id}`}
+              className={cn(
+                "h-32 rounded-[32px] border-2 flex flex-col items-center justify-center gap-2 transition-all active:scale-95 group",
+                table.status === 'busy' ? "border-white/10 bg-white/5 opacity-50 grayscale" : "border-orange-500/30 bg-orange-500/5 hover:border-orange-500"
+              )}
+            >
+              <span className="text-3xl font-black italic group-hover:scale-110 transition-transform">{table.number}</span>
+              <span className="text-[9px] font-black uppercase tracking-widest opacity-50">
+                {table.status === 'busy' ? 'Indisponível' : 'Selecionar'}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <footer className="mt-auto pt-12 text-gray-600 text-[10px] font-black uppercase tracking-[0.3em]">
+        GastroVoz AI • Intelligent Dining
+      </footer>
+    </div>
+  );
 }

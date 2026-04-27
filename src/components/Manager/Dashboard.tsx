@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, where, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Table, Order, MenuItem } from '../../types';
-import { Users, Timer, TrendingUp, AlertCircle, CheckCircle2, Clock, UtensilsCrossed, ClipboardList, AlertTriangle, Package, QrCode, CreditCard, Square } from 'lucide-react';
+import { Users, Timer, TrendingUp, AlertCircle, CheckCircle2, Clock, UtensilsCrossed, ClipboardList, AlertTriangle, Package, QrCode, CreditCard, Square, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { cn } from '../../lib/utils';
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [tables, setTables] = useState<Table[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [selectedTableData, setSelectedTableData] = useState<{table: Table, orders: Order[]} | null>(null);
 
   useEffect(() => {
     const qTables = query(collection(db, 'restaurants', 'default', 'tables'), orderBy('number', 'asc'));
@@ -19,7 +20,7 @@ export default function Dashboard() {
       setTables(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Table)));
     });
 
-    const qOrders = query(collection(db, 'restaurants', 'default', 'orders'), orderBy('createdAt', 'desc'), limit(10));
+    const qOrders = query(collection(db, 'restaurants', 'default', 'orders'), where('status', '!=', 'paid'));
     const unsubscribeOrders = onSnapshot(qOrders, (snap) => {
       setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
     });
@@ -35,6 +36,31 @@ export default function Dashboard() {
       unsubscribeMenu();
     };
   }, []);
+
+  const openTableDetails = (table: Table) => {
+    const tableOrders = orders.filter(o => o.tableId === table.id);
+    setSelectedTableData({ table, orders: tableOrders });
+  };
+
+  const finalizeTable = async () => {
+    if (!selectedTableData) return;
+    try {
+      const tableId = selectedTableData.table.id;
+      const updatePromises = selectedTableData.orders
+        .filter(o => o.status !== 'paid')
+        .map(o => updateDoc(doc(db, 'restaurants', 'default', 'orders', o.id), { status: 'paid' }));
+      
+      await Promise.all(updatePromises);
+      await updateDoc(doc(db, 'restaurants', 'default', 'tables', tableId), {
+        status: 'free',
+        callWaiter: false,
+        requestBill: false
+      });
+      setSelectedTableData(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const lowStockItems = menuItems.filter(item => item.stock <= item.minStock);
 
@@ -112,13 +138,6 @@ export default function Dashboard() {
     );
   }
 
-  const stats = [
-    { label: 'Ticket Médio', value: 'R$ 78,50', icon: TrendingUp, color: 'text-emerald-500' },
-    { label: 'Mesas Ativas', value: tables.filter(t => t.status !== 'free').length, icon: Users, color: 'text-blue-500' },
-    { label: 'Tempo Médio Prep.', value: '22 min', icon: Timer, color: 'text-orange-500' },
-    { label: 'Pedidos (Hoje)', value: orders.length, icon: LogOutIcon, color: 'text-purple-500' },
-  ];
-
   const chartData = [
     { time: '18:00', sales: 450 },
     { time: '19:00', sales: 1200 },
@@ -129,11 +148,91 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="h-screen overflow-y-auto p-6 md:p-8 space-y-6 bg-gray-50 text-gray-900">
-      <header className="flex justify-between items-center bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
-        <div className="flex items-center gap-6">
+    <div className="h-screen overflow-y-auto p-4 md:p-8 space-y-6 bg-gray-50 text-gray-900 pb-24">
+      {/* Table Detail Modal Overlay */}
+      <AnimatePresence>
+        {selectedTableData && (
+          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <header className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-orange-600 rounded-3xl flex items-center justify-center text-white font-black italic text-3xl shadow-xl shadow-orange-100">
+                    {selectedTableData.table.number}
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black italic tracking-tighter uppercase">Comanda Aberta</h3>
+                    <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Mesa {selectedTableData.table.number} • Digital Hub</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedTableData(null)} className="w-12 h-12 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-gray-900 shadow-sm">
+                  <X size={24} />
+                </button>
+              </header>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+                {selectedTableData.orders.length === 0 ? (
+                  <div className="h-64 flex flex-col items-center justify-center text-gray-300 gap-4">
+                    <UtensilsCrossed size={48} className="opacity-20" />
+                    <p className="font-black italic uppercase text-xs tracking-widest">Mesa Vazia</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {selectedTableData.orders.map(order => (
+                      <div key={order.id} className="p-6 bg-gray-50 rounded-3xl border border-gray-100">
+                        <div className="flex justify-between items-start mb-4">
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest",
+                            order.status === 'ready' ? "bg-emerald-500 text-white" : "bg-orange-500 text-white"
+                          )}>
+                            {order.status === 'ready' ? 'Pronto' : 'Em Preparo'}
+                          </span>
+                          <span className="text-[10px] font-mono text-gray-400">#{order.id.slice(-4)}</span>
+                        </div>
+                        <div className="space-y-2">
+                          {order.items.map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-center">
+                              <span className="text-sm font-bold italic">{item.qty}x {item.name}</span>
+                              <span className="text-sm font-mono font-bold">R$ {((item.price || 0) * item.qty).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <footer className="p-8 border-t border-gray-100 bg-white flex flex-col gap-4">
+                <div className="flex justify-between items-end">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mb-1">Total Consolidado</span>
+                    <span className="text-4xl font-mono font-black italic text-emerald-600 tracking-tighter">
+                      R$ {selectedTableData.orders.reduce((acc, o) => acc + o.total, 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={finalizeTable}
+                    disabled={selectedTableData.orders.length === 0}
+                    className="px-10 py-5 bg-gray-900 text-white rounded-[24px] font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-xl shadow-gray-200 active:scale-95 disabled:opacity-30"
+                  >
+                    Fechar e Liberar Mesa
+                  </button>
+                </div>
+              </footer>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 md:p-8 rounded-[40px] border border-gray-200 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-gray-900 italic">Monitoramento <span className="text-orange-600">Live</span></h2>
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 italic">Monitoramento <span className="text-orange-600">Live</span></h2>
             <p className="text-xs text-gray-500 italic">GastroVoz AI • Unidade Principal</p>
           </div>
           <Link 
@@ -143,13 +242,13 @@ export default function Dashboard() {
             <QrCode size={14} /> Configurar Mesas
           </Link>
         </div>
-        <div className="flex gap-6">
-          <div className="flex flex-col items-end">
+        <div className="flex gap-6 w-full md:w-auto overflow-x-auto">
+          <div className="flex flex-col items-end flex-shrink-0">
             <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Faturamento Hoje</span>
             <span className="text-xl font-mono text-emerald-600 font-bold">R$ 4.280,00</span>
           </div>
-          <div className="w-px h-10 bg-gray-200" />
-          <div className="flex flex-col items-end">
+          <div className="w-px h-10 bg-gray-200 flex-shrink-0" />
+          <div className="flex flex-col items-end flex-shrink-0">
             <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Status Cozinha</span>
             <span className="text-xl font-mono text-gray-900 font-bold">12m <span className="text-[10px] text-gray-400 uppercase font-sans">avg</span></span>
           </div>
@@ -158,29 +257,29 @@ export default function Dashboard() {
 
       <main className="grid grid-cols-12 gap-6 pb-8">
         {/* Table Map - Large Bento */}
-        <section className="col-span-12 lg:col-span-8 bg-white border border-gray-200 rounded-[40px] p-8 shadow-sm relative overflow-hidden">
-          <div className="flex justify-between items-center mb-8">
+        <section className="col-span-12 lg:col-span-8 bg-white border border-gray-200 rounded-[40px] p-6 sm:p-8 shadow-sm relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Mapa de Mesas Ativas</h3>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2">
               <span className="flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-500 text-[10px] rounded-full border border-gray-200 uppercase font-bold">● Livre</span>
               <span className="flex items-center gap-2 px-3 py-1 bg-orange-50 text-orange-600 text-[10px] rounded-full border border-orange-200 uppercase font-bold">● Ocupada</span>
               <span className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-600 text-[10px] rounded-full border border-red-200 uppercase font-bold">● Alerta</span>
             </div>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
             {tables.map((table) => (
-              <TableCard key={table.id} table={table} />
+              <div key={table.id} onClick={() => openTableDetails(table)}>
+                <TableCard table={table} />
+              </div>
             ))}
           </div>
         </section>
 
         {/* Side Panels */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
-          {/* Active Atendimento Alerts */}
           <ActiveAlerts />
-
-          {/* AI Voice Feed - Bento */}
+          
           <section className="bg-white border border-gray-200 rounded-[32px] p-6 flex flex-col h-[300px] shadow-sm">
              <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
@@ -192,7 +291,7 @@ export default function Dashboard() {
             
             <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide">
               {orders.slice(0, 5).map((order) => (
-                <div key={order.id} className="bg-gray-50 p-4 rounded-2xl border-l-4 border-orange-500 border border-gray-200">
+                <div key={order.id} className="bg-gray-50 p-4 rounded-2xl border-l-4 border-orange-50 border border-gray-200">
                   <div className="flex justify-between items-center mb-1">
                     <p className="text-[10px] text-gray-500 font-bold uppercase">Mesa {tables.find(t => t.id === order.tableId)?.number} • {order.type === 'waiter' ? 'Garçom' : 'QR'}</p>
                     <span className="text-[9px] bg-gray-200 px-2 py-0.5 rounded text-gray-500 uppercase font-bold">Live</span>
@@ -205,10 +304,8 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* New Low Stock Alerts */}
           <LowStockAlerts />
 
-          {/* Quick Insights - Horizontal Bento */}
           <section className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-[32px] p-8 text-white shadow-lg shadow-orange-200 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 group-hover:rotate-45 transition-transform duration-700">
               <TrendingUp size={120} />
@@ -221,16 +318,9 @@ export default function Dashboard() {
                 <p className="text-5xl font-black italic tracking-tighter">+24%</p>
                 <p className="text-xs font-medium opacity-80 mt-1">Ticket Médio via IA</p>
               </div>
-              <div className="text-right flex flex-col gap-1">
-                <div className="h-1.5 w-24 bg-white/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-white w-2/3" />
-                </div>
-                <p className="text-[9px] font-black uppercase tracking-tighter opacity-60">Performance Meta</p>
-              </div>
             </div>
           </section>
 
-          {/* SaaS Ideas Section */}
           <section className="bg-gray-900 border border-gray-800 rounded-[32px] p-6 space-y-4 shadow-xl">
              <h3 className="text-[10px] font-black uppercase tracking-widest text-orange-500">Próximos Passos SAAS</h3>
              <div className="space-y-3">
@@ -249,7 +339,6 @@ export default function Dashboard() {
              </div>
           </section>
 
-          {/* Fluxo de Vendas */}
           <section className="bg-white border border-gray-200 rounded-[32px] p-6 h-[250px] shadow-sm">
             <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4">Fluxo de Pedidos</h3>
             <div className="h-[160px]">
@@ -275,7 +364,7 @@ export default function Dashboard() {
         </div>
       </main>
 
-      <footer className="flex justify-between items-center text-[10px] text-gray-400 uppercase font-black tracking-[0.2em] px-4 py-8">
+      <footer className="flex flex-col sm:flex-row justify-between items-center text-[10px] text-gray-400 uppercase font-black tracking-[0.2em] px-4 py-8 gap-4">
         <div>Sistema Operacional GastroVoz v1.2</div>
         <div className="flex gap-8">
           <span>Sincronização OK</span>
@@ -346,7 +435,7 @@ function TableCard({ table }: { table: Table }) {
 
       {/* Floating Status Badges */}
       {(table.requestBill || table.callWaiter) && (
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 scale-75 sm:scale-100">
           <div className="w-6 h-6 rounded-full bg-current flex items-center justify-center text-white shadow-lg">
             {table.requestBill ? <CreditCard size={10} /> : <AlertCircle size={10} />}
           </div>
@@ -356,6 +445,3 @@ function TableCard({ table }: { table: Table }) {
   );
 }
 
-function LogOutIcon(props: any) {
-  return <ClipboardList {...props} />;
-}
