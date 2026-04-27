@@ -57,11 +57,14 @@ export default function TableManager() {
     (window as any)._comandaUnsubscribe = unsubscribe;
   };
 
+  const [splitCount, setSplitCount] = useState(1);
+
   const closeComanda = () => {
     if ((window as any)._comandaUnsubscribe) {
       (window as any)._comandaUnsubscribe();
     }
     setSelectedTableOrders(null);
+    setSplitCount(1);
   };
 
   const finalizeTable = async () => {
@@ -263,19 +266,46 @@ export default function TableManager() {
                 )}
               </div>
 
-              <footer className="p-8 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Consumo Total Acumulado</span>
-                  <span className="text-3xl font-mono font-black italic text-emerald-600 tracking-tighter">
-                    R$ {selectedTableOrders.orders.reduce((acc, o) => acc + o.total, 0).toFixed(2)}
-                  </span>
+              <footer className="p-8 border-t border-gray-100 bg-gray-50 flex flex-col gap-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mb-1">Consumo Total + 10%</span>
+                    <span className="text-3xl font-mono font-black italic text-emerald-600 tracking-tighter">
+                      R$ {(selectedTableOrders.orders.reduce((acc, o) => acc + o.total, 0) * 1.1).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mb-1">Dividir p/ pessoas</span>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setSplitCount(Math.max(1, splitCount - 1))} className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center text-gray-600">-</button>
+                      <span className="text-xl font-black italic">{splitCount}</span>
+                      <button onClick={() => setSplitCount(splitCount + 1)} className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center text-gray-600">+</button>
+                    </div>
+                  </div>
                 </div>
-                <button 
-                  onClick={finalizeTable}
-                  className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform active:scale-95 shadow-xl shadow-gray-200"
-                >
-                  Fechar Conta
-                </button>
+
+                {splitCount > 1 && (
+                  <div className="p-4 bg-orange-600 rounded-2xl flex justify-between items-center animate-in zoom-in-95 duration-200">
+                    <span className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Individual</span>
+                    <span className="text-2xl font-mono font-black italic text-white italic">
+                      R$ {((selectedTableOrders.orders.reduce((acc, o) => acc + o.total, 0) * 1.1) / splitCount).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex gap-4">
+                  <button 
+                    onClick={finalizeTable}
+                    className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform active:scale-95 shadow-xl shadow-gray-200"
+                  >
+                    Fechar Conta Integral
+                  </button>
+                  <button 
+                    className="px-6 py-4 bg-white border border-gray-200 text-gray-500 rounded-2xl font-black uppercase tracking-widest text-[9px] hover:bg-gray-50 transition-colors"
+                  >
+                    Pagamento Parcial
+                  </button>
+                </div>
               </footer>
             </motion.div>
           </div>
