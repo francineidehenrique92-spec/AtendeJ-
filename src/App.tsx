@@ -63,7 +63,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col md:flex-row">
+      <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col md:flex-row">
         <Nav />
         <main className="flex-1 overflow-hidden">
           <Routes>
@@ -93,14 +93,14 @@ function Nav() {
   ];
 
   return (
-    <nav className="md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col p-6 gap-2">
+    <nav className="md:w-64 bg-white border-r border-gray-100 flex flex-col p-6 gap-2 shadow-sm relative z-10">
       <div className="flex items-center gap-3 py-6">
         <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center text-white font-black text-xl tracking-tighter">
           AI
         </div>
         <div>
-          <h1 className="text-lg font-bold text-white leading-tight">GastroVoz <span className="text-orange-500">v1.0</span></h1>
-          <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Intelligent SaaS</p>
+          <h1 className="text-lg font-bold text-gray-900 leading-tight">GastroVoz <span className="text-orange-600">v1.2</span></h1>
+          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest leading-none">Intelligent System</p>
         </div>
       </div>
       
@@ -111,8 +111,8 @@ function Nav() {
             to={item.path}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium border ${
               location.pathname === item.path
-                ? 'bg-orange-500/10 border-orange-500/50 text-orange-500'
-                : 'border-transparent text-slate-400 hover:bg-slate-800'
+                ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-100'
+                : 'border-transparent text-gray-500 hover:bg-gray-100'
             }`}
           >
             <item.icon size={20} />
@@ -121,16 +121,16 @@ function Nav() {
         ))}
       </div>
 
-      <div className="pt-6 border-t border-slate-800 flex flex-col gap-4">
-        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-          <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Status Sistema</p>
+      <div className="pt-6 border-t border-gray-100 flex flex-col gap-4">
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-1">Status Sistema</p>
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-mono text-slate-300">Sincronizado OK</span>
+            <span className="text-xs font-mono text-gray-600">Sincronizado OK</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-2 text-slate-500 text-[10px] uppercase font-bold tracking-widest">
+        <div className="flex items-center justify-between px-2 text-gray-400 text-[10px] uppercase font-bold tracking-widest">
           <span>Terminal #02</span>
           <button onClick={() => auth.signOut()} className="hover:text-red-500 transition-colors">
             <LogOut size={16} />

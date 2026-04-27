@@ -145,18 +145,18 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
   if (loading) return null;
 
   return (
-    <div className="h-screen bg-slate-950 overflow-hidden flex flex-col relative max-w-md mx-auto border-x border-slate-800 shadow-2xl">
+    <div className="h-screen bg-white overflow-hidden flex flex-col relative max-w-md mx-auto border-x border-gray-100 shadow-2xl">
       {/* Header */}
-      <div className="p-6 bg-slate-900 border-b border-slate-800 flex items-center justify-between z-10 shadow-lg">
+      <div className="p-6 bg-white border-b border-gray-100 flex items-center justify-between z-10 shadow-sm">
         <div>
-          <h2 className="text-xl font-black italic tracking-tighter text-white">Mesa {table?.number || '?'}</h2>
-          <p className="text-[9px] text-emerald-500 font-black uppercase tracking-[0.2em] flex items-center gap-1 mt-0.5">
+          <h2 className="text-xl font-black italic tracking-tighter text-gray-900 leading-none">Mesa {table?.number || '?'}</h2>
+          <p className="text-[9px] text-emerald-600 font-black uppercase tracking-[0.2em] flex items-center gap-1 mt-1 leading-none">
             <Check size={10} /> Live Sync Active
           </p>
         </div>
         <button 
           onClick={callWaiter}
-          className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-700 active:bg-orange-600 active:text-white transition-all cursor-pointer"
+          className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 border border-gray-200 active:bg-orange-600 active:text-white transition-all cursor-pointer"
         >
           <Utensils size={24} />
         </button>
@@ -167,7 +167,7 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
         {table?.status === 'busy' && !table?.requestBill && (
           <button 
             onClick={requestBill}
-            className="w-full py-4 bg-slate-900 border border-slate-800 rounded-[32px] flex items-center justify-center gap-3 text-slate-400 hover:text-white transition-colors"
+            className="w-full py-4 bg-gray-50 border border-gray-100 rounded-[32px] flex items-center justify-center gap-3 text-gray-500 hover:text-gray-900 transition-colors"
           >
             <CreditCard size={18} />
             <span className="text-[10px] font-black uppercase tracking-widest">Pedir Conta</span>
@@ -175,13 +175,13 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
         )}
         {/* Shared Order Alert */}
         {sharedOrder && (
-          <div className="bg-orange-500/10 border border-orange-500/30 p-5 rounded-[28px] flex items-center gap-4 shadow-inner">
-            <div className="w-12 h-12 bg-orange-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-orange-600/20">
+          <div className="bg-orange-50 border border-orange-100 p-5 rounded-[28px] flex items-center gap-4 shadow-sm">
+            <div className="w-12 h-12 bg-orange-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-orange-100">
               <ShoppingBag size={24} />
             </div>
             <div className="flex-1">
-              <p className="text-[10px] text-orange-500 font-black uppercase tracking-widest">Seu Pedido Ativo</p>
-              <p className="text-sm font-bold text-white tracking-tight">
+              <p className="text-[10px] text-orange-600 font-black uppercase tracking-widest leading-none">Seu Pedido Ativo</p>
+              <p className="text-sm font-bold text-gray-900 tracking-tight mt-0.5">
                 {sharedOrder.items.length} itens em preparo...
               </p>
             </div>
@@ -197,8 +197,8 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
               className={cn(
                 "whitespace-nowrap px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border",
                 activeTab === cat 
-                  ? "bg-white text-slate-950 border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]" 
-                  : "bg-slate-900 text-slate-500 border-slate-800 hover:border-slate-600"
+                  ? "bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-100" 
+                  : "bg-gray-50 text-gray-400 border-gray-200 hover:border-gray-300"
               )}
             >
               {cat}
@@ -208,26 +208,26 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
 
         {/* Menu Items */}
         <div className="space-y-8">
-          <h3 className="font-black italic text-2xl text-white tracking-tight">{activeTab}</h3>
+          <h3 className="font-black italic text-2xl text-gray-900 tracking-tight leading-none">{activeTab}</h3>
           <div className="grid gap-8">
             {menuItems.filter(i => i.category === activeTab).map((item) => (
               <div key={item.id} className="flex gap-5 group">
-                <div className="w-28 h-28 bg-slate-900 rounded-[32px] border border-slate-800 flex-shrink-0 flex items-center justify-center text-slate-700 shadow-inner overflow-hidden relative">
-                   <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                <div className="w-28 h-28 bg-gray-50 rounded-[32px] border border-gray-100 flex-shrink-0 flex items-center justify-center text-gray-300 shadow-inner overflow-hidden relative">
+                   <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
                   <Utensils size={32} />
                 </div>
                 <div className="flex-1 flex flex-col justify-center gap-1">
                   <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-lg text-white leading-tight">{item.name}</h4>
+                    <h4 className="font-bold text-lg text-gray-900 leading-tight">{item.name}</h4>
                   </div>
-                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
                     {item.description}
                   </p>
                   <div className="flex justify-between items-center mt-2">
-                    <span className="font-black text-orange-500 italic text-xl">R$ {item.price.toFixed(2)}</span>
+                    <span className="font-black text-orange-600 italic text-xl">R$ {item.price.toFixed(2)}</span>
                     <button 
                       onClick={() => addToCart(item)}
-                      className="bg-white text-slate-950 w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-orange-500 hover:text-white transition-all shadow-lg active:scale-95"
+                      className="bg-gray-900 text-white w-10 h-10 rounded-2xl flex items-center justify-center hover:bg-orange-600 transition-all shadow-md active:scale-95"
                     >
                       <Plus size={20} />
                     </button>
@@ -239,7 +239,7 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
         </div>
 
         {/* Featured Upsell */}
-        <div className="bg-gradient-to-br from-orange-600 to-orange-800 p-8 rounded-[40px] text-white space-y-6 shadow-2xl relative overflow-hidden group">
+        <div className="bg-gradient-to-br from-orange-600 to-orange-800 p-8 rounded-[40px] text-white space-y-6 shadow-xl relative overflow-hidden group">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700" />
           <div className="flex justify-between items-start relative z-10">
             <h4 className="font-black text-2xl italic leading-[1.1] tracking-tighter">Sobremesa <br/>Grátis?</h4>
@@ -250,22 +250,22 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
           <p className="text-sm font-medium text-orange-50 relative z-10 leading-relaxed px-1">
             Adicione um café e uma sobremesa e o café é por nossa conta.
           </p>
-          <button className="w-full py-4 bg-white text-orange-700 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl hover:bg-orange-50 transition-all relative z-10">
+          <button className="w-full py-4 bg-white text-orange-700 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg hover:bg-orange-50 transition-all relative z-10">
             Aproveitar Agora
           </button>
         </div>
 
         {/* Feedback Section */}
-        <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-[40px] text-center space-y-4">
-          <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">O que achou do atendimento?</h4>
+        <div className="bg-gray-50 border border-gray-100 p-8 rounded-[40px] text-center space-y-4">
+          <h4 className="text-xs font-black uppercase tracking-widest text-gray-400">O que achou do atendimento?</h4>
           <div className="flex justify-center gap-3">
             {[1, 2, 3, 4, 5].map((star) => (
-              <button key={star} className="text-slate-700 hover:text-orange-500 transition-colors">
+              <button key={star} className="text-gray-200 hover:text-orange-500 transition-colors">
                 <Star size={24} fill={star <= 4 ? "currentColor" : "none"} className={star <= 4 ? "text-orange-500" : ""} />
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-slate-600 italic">Sua opinião ajuda a melhorar nossa IA</p>
+          <p className="text-[10px] text-gray-400 italic">Sua opinião ajuda a melhorar nossa IA</p>
         </div>
       </div>
 
@@ -280,7 +280,7 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
           >
             <button 
               onClick={() => setCheckoutVisible(true)}
-              className="w-full bg-white text-slate-950 p-6 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex justify-between items-center group overflow-hidden border-4 border-slate-900"
+              className="w-full bg-gray-900 text-white p-6 rounded-[32px] shadow-2xl flex justify-between items-center group overflow-hidden border-4 border-white"
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center font-black text-white text-lg">
@@ -288,7 +288,7 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
                 </div>
                 <span className="font-black text-sm uppercase tracking-[0.2em] italic">Finalizar</span>
               </div>
-              <span className="text-2xl font-black italic tracking-tighter text-orange-600">R$ {cartTotal.toFixed(2)}</span>
+              <span className="text-2xl font-black italic tracking-tighter text-white">R$ {cartTotal.toFixed(2)}</span>
             </button>
           </motion.div>
         )}
@@ -303,53 +303,53 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setCheckoutVisible(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-30"
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-md z-30"
             />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              className="absolute bottom-0 left-0 right-0 bg-slate-900 rounded-t-[50px] z-40 p-10 pt-10 border-t border-slate-800 shadow-2xl max-h-[85vh] overflow-y-auto scrollbar-hide text-white"
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[50px] z-40 p-10 pt-10 border-t border-gray-100 shadow-2xl max-h-[85vh] overflow-y-auto scrollbar-hide text-gray-900"
             >
-              <div className="w-16 h-1.5 bg-slate-800 rounded-full mx-auto mb-10" />
+              <div className="w-16 h-1.5 bg-gray-100 rounded-full mx-auto mb-10" />
               
               <div className="space-y-10">
-                <h3 className="text-3xl font-black italic tracking-tighter text-white">Sua Comanda</h3>
+                <h3 className="text-3xl font-black italic tracking-tighter text-gray-900 leading-none">Sua Comanda</h3>
                 
                 <div className="space-y-6">
                   {cart.map((item) => (
                     <div key={item.id} className="flex justify-between items-center group">
                       <div className="flex-1">
-                        <p className="font-bold text-lg text-white group-hover:text-orange-500 transition-colors">{item.name}</p>
-                        <p className="text-xs text-slate-500 font-medium">R$ {item.price.toFixed(2)} un.</p>
+                        <p className="font-bold text-lg text-gray-900 group-hover:text-orange-600 transition-colors leading-tight">{item.name}</p>
+                        <p className="text-xs text-gray-400 font-medium">R$ {item.price.toFixed(2)} un.</p>
                       </div>
-                      <div className="flex items-center gap-5 bg-slate-950 px-5 py-2.5 rounded-[20px] border border-slate-800 shadow-inner">
-                        <button onClick={() => removeFromCart(item.id)} className="text-slate-600 hover:text-red-500 transition-colors"><Minus size={18} /></button>
-                        <span className="font-black text-lg w-6 text-center">{item.qty}</span>
-                        <button onClick={() => addToCart(item)} className="text-slate-600 hover:text-emerald-500 transition-colors"><Plus size={18} /></button>
+                      <div className="flex items-center gap-5 bg-gray-50 px-5 py-2.5 rounded-[20px] border border-gray-100 shadow-inner">
+                        <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-500 transition-colors"><Minus size={18} /></button>
+                        <span className="font-black text-lg w-6 text-center text-gray-900">{item.qty}</span>
+                        <button onClick={() => addToCart(item)} className="text-gray-300 hover:text-emerald-500 transition-colors"><Plus size={18} /></button>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="pt-10 border-t border-slate-800 space-y-4">
-                  <div className="flex justify-between text-slate-500 font-bold uppercase tracking-widest text-[10px]">
+                <div className="pt-10 border-t border-gray-100 space-y-4">
+                  <div className="flex justify-between text-gray-400 font-bold uppercase tracking-widest text-[10px]">
                     <span>Consumo Bruto</span>
                     <span className="font-mono">R$ {cartTotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-slate-500 font-bold uppercase tracking-widest text-[10px]">
+                  <div className="flex justify-between text-gray-400 font-bold uppercase tracking-widest text-[10px]">
                     <span>Serviço (10%)</span>
                     <span className="font-mono">R$ {(cartTotal * 0.1).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-end pt-6">
-                    <span className="font-black italic text-2xl text-white tracking-tighter">Subtotal</span>
+                    <span className="font-black italic text-2xl text-gray-900 tracking-tighter">Subtotal</span>
                     <span className="text-4xl font-black italic text-orange-600 tracking-tighter">R$ {(cartTotal * 1.1).toFixed(2)}</span>
                   </div>
                 </div>
 
                 <button
                   onClick={placeOrder}
-                  className="w-full bg-orange-600 text-white py-6 rounded-[32px] font-black text-lg shadow-2xl shadow-orange-900/40 hover:bg-orange-500 transition-all flex items-center justify-center gap-4 active:scale-95 uppercase tracking-widest"
+                  className="w-full bg-gray-900 text-white py-6 rounded-[32px] font-black text-lg shadow-xl shadow-gray-200 hover:bg-black transition-all flex items-center justify-center gap-4 active:scale-95 uppercase tracking-widest"
                 >
                   <CreditCard size={24} />
                   Enviar Pedido

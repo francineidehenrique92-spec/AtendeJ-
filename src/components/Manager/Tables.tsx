@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, where, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, where, orderBy, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Table, Order } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -101,21 +101,21 @@ export default function TableManager() {
   };
 
   return (
-    <div className="h-screen overflow-y-auto p-8 space-y-8 bg-slate-950 text-slate-200">
-      <header className="flex justify-between items-center mb-8 bg-slate-900/50 p-8 rounded-[40px] border border-slate-800">
+    <div className="h-screen overflow-y-auto p-8 space-y-8 bg-gray-50 text-gray-900">
+      <header className="flex justify-between items-center mb-8 bg-white p-8 rounded-[40px] border border-gray-200 shadow-sm">
         <div>
-          <h2 className="text-3xl font-black italic tracking-tighter text-white">Configurador de <span className="text-orange-500">Mesas</span></h2>
-          <p className="text-xs text-slate-500 uppercase tracking-widest font-black">Escaneie, Baixe ou Monitore pedidos</p>
+          <h2 className="text-3xl font-black italic tracking-tighter text-gray-900">Configurador de <span className="text-orange-600">Mesas</span></h2>
+          <p className="text-xs text-gray-500 uppercase tracking-widest font-black">Escaneie, Baixe ou Monitore pedidos</p>
         </div>
-        <form onSubmit={addTable} className="flex gap-3 bg-slate-950 p-2 rounded-2xl border border-slate-800">
+        <form onSubmit={addTable} className="flex gap-3 bg-gray-100 p-2 rounded-2xl border border-gray-200">
           <input 
             type="number" 
             placeholder="Nº Mesa"
             value={newTableNumber}
             onChange={(e) => setNewTableNumber(e.target.value)}
-            className="bg-transparent border-none focus:ring-0 text-white w-24 px-4 font-bold"
+            className="bg-transparent border-none focus:ring-0 text-gray-900 w-24 px-4 font-bold"
           />
-          <button className="bg-orange-600 hover:bg-orange-500 p-3 rounded-xl transition-colors">
+          <button className="bg-orange-600 hover:bg-orange-500 p-3 rounded-xl transition-colors text-white">
             <Plus size={20} />
           </button>
         </form>
@@ -130,19 +130,19 @@ export default function TableManager() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               key={table.id}
-              className="bg-slate-900 border border-slate-800 rounded-[40px] p-8 flex flex-col items-center gap-6 group hover:border-orange-500/50 transition-all shadow-2xl relative overflow-hidden"
+              className="bg-white border border-gray-200 rounded-[40px] p-8 flex flex-col items-center gap-6 group hover:border-orange-500/50 transition-all shadow-sm relative overflow-hidden"
             >
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <h3 className="text-5xl font-black italic text-white uppercase tracking-tighter">Mesa {table.number}</h3>
+                  <h3 className="text-5xl font-black italic text-gray-900 uppercase tracking-tighter">Mesa {table.number}</h3>
                   {table.status !== 'free' && (
                     <div className="w-3 h-3 rounded-full bg-orange-500 animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
                   )}
                 </div>
-                <span className="text-[10px] text-slate-600 uppercase font-black tracking-widest">Digital Hub #{table.id.slice(-4)}</span>
+                <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Digital Hub #{table.id.slice(-4)}</span>
               </div>
 
-              <div className="relative w-full aspect-square flex items-center justify-center bg-slate-950 rounded-[32px] border border-slate-800 overflow-hidden">
+              <div className="relative w-full aspect-square flex items-center justify-center bg-gray-50 rounded-[32px] border border-gray-200 overflow-hidden">
                 {revealedQr.includes(table.id) ? (
                   <div className="bg-white p-6 rounded-3xl animate-in zoom-in-95 duration-300">
                     <QRCodeCanvas 
@@ -154,11 +154,11 @@ export default function TableManager() {
                     />
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-4 text-slate-700">
+                  <div className="flex flex-col items-center gap-4 text-gray-300">
                     <QrCode size={80} strokeWidth={1} />
                     <button 
                       onClick={() => toggleQr(table.id)}
-                      className="text-[10px] uppercase font-black tracking-widest hover:text-orange-500 transition-colors"
+                      className="text-[10px] uppercase font-black tracking-widest text-gray-500 hover:text-orange-500 transition-colors"
                     >
                       Revelar Código
                     </button>
@@ -169,7 +169,7 @@ export default function TableManager() {
               <div className="w-full grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => openComanda(table)}
-                  className="bg-orange-600 hover:bg-orange-500 py-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-all active:scale-95 shadow-lg shadow-orange-900/20"
+                  className="bg-orange-600 hover:bg-orange-500 py-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-all active:scale-95 shadow-lg shadow-orange-900/10"
                 >
                   <Receipt size={16} /> Comanda
                 </button>
@@ -177,13 +177,13 @@ export default function TableManager() {
                    <button 
                      onClick={() => downloadQr(table.id, table.number)}
                      disabled={!revealedQr.includes(table.id)}
-                     className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 py-4 rounded-2xl flex items-center justify-center text-slate-300 transition-all"
+                     className="flex-1 bg-gray-100 hover:bg-gray-200 disabled:opacity-30 py-4 rounded-2xl flex items-center justify-center text-gray-600 transition-all"
                    >
                      <Download size={18} />
                    </button>
                    <button 
                      onClick={() => removeTable(table.id)}
-                     className="w-12 bg-slate-950 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/50 py-4 rounded-2xl flex items-center justify-center text-slate-600 hover:text-red-500 transition-all"
+                     className="w-12 bg-gray-50 hover:bg-red-50 border border-gray-200 hover:border-red-500 py-4 rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-500 transition-all"
                    >
                      <Trash2 size={16} />
                    </button>
@@ -192,7 +192,7 @@ export default function TableManager() {
 
               <button 
                 onClick={() => window.open(getTableUrl(table.id), '_blank')}
-                className="w-full py-3 bg-slate-950 border border-slate-800 rounded-xl text-[9px] uppercase font-black tracking-widest text-slate-500 hover:text-slate-300 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gray-50 border border-gray-200 rounded-xl text-[9px] uppercase font-black tracking-widest text-gray-500 hover:text-gray-900 transition-all flex items-center justify-center gap-2"
               >
                 <ExternalLink size={12} /> Visualizar como Cliente
               </button>
@@ -204,26 +204,26 @@ export default function TableManager() {
       {/* Comanda Modal */}
       <AnimatePresence>
         {selectedTableOrders && (
-          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-8">
+          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-8">
             <motion.div 
               initial={{ opacity: 0, y: 50, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.9 }}
-              className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-[40px] flex flex-col max-h-[80vh] shadow-3xl"
+              className="bg-white border border-gray-200 w-full max-w-2xl rounded-[40px] flex flex-col max-h-[80vh] shadow-2xl overflow-hidden"
             >
-              <header className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900 sticky top-0 rounded-t-[40px]">
+              <header className="p-8 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-600/20">
                     <Receipt size={24} className="text-white" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter">Comanda Digital • Mesa {selectedTableOrders.table.number}</h3>
-                    <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">{selectedTableOrders.orders.length} pedidos realizados</p>
+                    <h3 className="text-2xl font-black italic text-gray-900 uppercase tracking-tighter">Comanda Digital • Mesa {selectedTableOrders.table.number}</h3>
+                    <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">{selectedTableOrders.orders.length} pedidos realizados</p>
                   </div>
                 </div>
                 <button 
                   onClick={closeComanda}
-                  className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+                  className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-2xl flex items-center justify-center text-gray-500 hover:text-gray-900 transition-colors"
                 >
                   <X size={24} />
                 </button>
@@ -231,17 +231,17 @@ export default function TableManager() {
 
               <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
                 {selectedTableOrders.orders.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-slate-700">
+                  <div className="flex flex-col items-center justify-center py-20 text-gray-300">
                     <Receipt size={64} strokeWidth={1} className="mb-4 opacity-20" />
                     <p className="text-sm font-bold italic tracking-tight">Nenhum pedido ativo para esta mesa</p>
                   </div>
                 ) : (
                   selectedTableOrders.orders.map((order) => (
-                    <div key={order.id} className="bg-slate-950 p-6 rounded-[32px] border border-slate-800 space-y-4">
-                      <div className="flex justify-between items-center text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                    <div key={order.id} className="bg-gray-50 p-6 rounded-[32px] border border-gray-200 space-y-4">
+                      <div className="flex justify-between items-center text-gray-400 text-[10px] font-black uppercase tracking-widest">
                         <span className="flex items-center gap-2"><Clock size={12} /> {new Date(order.createdAt).toLocaleString()}</span>
                         <span className={`px-2 py-0.5 rounded-full border ${
-                          order.status === 'ready' ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/5' : 'border-orange-500/30 text-orange-500 bg-orange-500/5'
+                          order.status === 'ready' ? 'border-emerald-500/30 text-emerald-600 bg-emerald-50' : 'border-orange-500/30 text-orange-600 bg-orange-50'
                         }`}>
                           {order.status}
                         </span>
@@ -249,30 +249,30 @@ export default function TableManager() {
                       <div className="space-y-2">
                         {order.items.map((item, i) => (
                           <div key={i} className="flex justify-between items-center group">
-                            <span className="text-sm font-bold text-slate-200">{item.qty}x <span className="italic">{item.name}</span></span>
-                            <span className="text-xs font-mono text-slate-600">R$ {(item.price || 0).toFixed(2)}</span>
+                            <span className="text-sm font-bold text-gray-700">{item.qty}x <span className="italic">{item.name}</span></span>
+                            <span className="text-xs font-mono text-gray-400">R$ {(item.price || 0).toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
-                      <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
-                        <span className="text-xs font-black uppercase tracking-widest text-slate-500">Total Ticket</span>
-                        <span className="text-xl font-mono font-bold text-white tracking-tighter">R$ {order.total.toFixed(2)}</span>
+                      <div className="pt-4 border-t border-gray-200 flex justify-between items-center">
+                        <span className="text-xs font-black uppercase tracking-widest text-gray-400" mt-1>Total Ticket</span>
+                        <span className="text-xl font-mono font-bold text-gray-900 tracking-tighter">R$ {order.total.toFixed(2)}</span>
                       </div>
                     </div>
                   ))
                 )}
               </div>
 
-              <footer className="p-8 border-t border-slate-800 bg-slate-900 rounded-b-[40px] flex justify-between items-center">
+              <footer className="p-8 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Consumo Total Acumulado</span>
-                  <span className="text-3xl font-mono font-black italic text-emerald-500 tracking-tighter">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Consumo Total Acumulado</span>
+                  <span className="text-3xl font-mono font-black italic text-emerald-600 tracking-tighter">
                     R$ {selectedTableOrders.orders.reduce((acc, o) => acc + o.total, 0).toFixed(2)}
                   </span>
                 </div>
                 <button 
                   onClick={finalizeTable}
-                  className="px-8 py-4 bg-white text-slate-950 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform active:scale-95 shadow-xl shadow-orange-950/20"
+                  className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform active:scale-95 shadow-xl shadow-gray-200"
                 >
                   Fechar Conta
                 </button>

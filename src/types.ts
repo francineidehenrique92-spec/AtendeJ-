@@ -25,7 +25,7 @@ export interface Order {
   id: string;
   tableId: string;
   items: OrderItem[];
-  status: 'pending' | 'preparing' | 'delivered' | 'paid';
+  status: 'pending' | 'preparing' | 'ready' | 'delivered' | 'paid';
   total: number;
   type: 'waiter' | 'customer';
   createdAt: any;
