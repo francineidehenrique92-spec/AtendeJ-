@@ -23,7 +23,16 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (!user) {
-          await signInAnonymously(auth);
+          try {
+            await signInAnonymously(auth);
+          } catch (err: any) {
+            if (err.code === 'auth/admin-restricted-operation') {
+              console.warn("Anonymous auth disabled. Running in unauthenticated mode for now.");
+              // For development/preview, we can continue without a real user if rules allow
+            } else {
+              throw err;
+            }
+          }
         } else {
           setUser(user);
           await initializeMockData().catch(console.error);

@@ -1,28 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, where, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { Table } from '../../types';
+import { Table, Order } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { QrCode, Plus, Trash2, ExternalLink, Download } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QrCode, Plus, Trash2, ExternalLink, Download, Eye, EyeOff, Receipt, X, Clock } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 export default function TableManager() {
   const [tables, setTables] = useState<Table[]>([]);
   const [newTableNumber, setNewTableNumber] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [revealedQr, setRevealedQr] = useState<string[]>([]);
+  const [selectedTableOrders, setSelectedTableOrders] = useState<{table: Table, orders: Order[]} | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, 'restaurants', 'default', 'tables'));
     return onSnapshot(q, (snap) => {
       setTables(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Table)).sort((a, b) => a.number - b.number));
-      setLoading(false);
     });
   }, []);
 
   const addTable = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTableNumber) return;
-    
     await addDoc(collection(db, 'restaurants', 'default', 'tables'), {
       number: parseInt(newTableNumber),
       status: 'free',
@@ -37,6 +36,66 @@ export default function TableManager() {
     }
   };
 
+  const toggleQr = (id: string) => {
+    setRevealedQr(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const openComanda = (table: Table) => {
+    const q = query(
+      collection(db, 'restaurants', 'default', 'orders'),
+      where('tableId', '==', table.id),
+      orderBy('createdAt', 'desc')
+    );
+    
+    // One-time fetch or snapshot? Let's use snapshot for real-time comanda
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const orders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+      setSelectedTableOrders({ table, orders });
+    });
+
+    // We'll handle unsubscribe when modal closes or manually
+    (window as any)._comandaUnsubscribe = unsubscribe;
+  };
+
+  const closeComanda = () => {
+    if ((window as any)._comandaUnsubscribe) {
+      (window as any)._comandaUnsubscribe();
+    }
+    setSelectedTableOrders(null);
+  };
+
+  const finalizeTable = async () => {
+    if (!selectedTableOrders) return;
+    try {
+      const tableId = selectedTableOrders.table.id;
+      await updateDoc(doc(db, 'restaurants', 'default', 'tables', tableId), {
+        status: 'free',
+        callWaiter: false,
+        requestBill: false,
+        updatedAt: serverTimestamp()
+      });
+      closeComanda();
+      alert('Mesa finalizada e liberada com sucesso!');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const downloadQr = (id: string, number: number) => {
+    const canvas = document.getElementById(`qr-${id}`) as HTMLCanvasElement;
+    if (canvas) {
+      const pngUrl = canvas
+        .toDataURL("image/png")
+        .replace("image/png", "image/octet-stream");
+      let downloadLink = document.createElement("a");
+      downloadLink.href = pngUrl;
+      downloadLink.download = `mesa-${number}-qr.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  };
+
   const getTableUrl = (id: string) => {
     return `${window.location.origin}/customer/${id}`;
   };
@@ -46,7 +105,7 @@ export default function TableManager() {
       <header className="flex justify-between items-center mb-8 bg-slate-900/50 p-8 rounded-[40px] border border-slate-800">
         <div>
           <h2 className="text-3xl font-black italic tracking-tighter text-white">Configurador de <span className="text-orange-500">Mesas</span></h2>
-          <p className="text-xs text-slate-500 uppercase tracking-widest font-black">Adicione mesas e gere QR Codes únicos</p>
+          <p className="text-xs text-slate-500 uppercase tracking-widest font-black">Escaneie, Baixe ou Monitore pedidos</p>
         </div>
         <form onSubmit={addTable} className="flex gap-3 bg-slate-950 p-2 rounded-2xl border border-slate-800">
           <input 
@@ -71,39 +130,158 @@ export default function TableManager() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               key={table.id}
-              className="bg-slate-900 border border-slate-800 rounded-[40px] p-8 flex flex-col items-center gap-6 group hover:border-orange-500/50 transition-all shadow-2xl"
+              className="bg-slate-900 border border-slate-800 rounded-[40px] p-8 flex flex-col items-center gap-6 group hover:border-orange-500/50 transition-all shadow-2xl relative overflow-hidden"
             >
               <div className="text-center">
-                <h3 className="text-5xl font-black italic text-white mb-2">Mesa {table.number}</h3>
-                <span className="text-[10px] text-slate-600 uppercase font-black tracking-widest">ID: {table.id.slice(-6)}</span>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <h3 className="text-5xl font-black italic text-white uppercase tracking-tighter">Mesa {table.number}</h3>
+                  {table.status !== 'free' && (
+                    <div className="w-3 h-3 rounded-full bg-orange-500 animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
+                  )}
+                </div>
+                <span className="text-[10px] text-slate-600 uppercase font-black tracking-widest">Digital Hub #{table.id.slice(-4)}</span>
               </div>
 
-              <div className="bg-white p-4 rounded-3xl shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                <QRCodeSVG value={getTableUrl(table.id)} size={160} level="H" />
+              <div className="relative w-full aspect-square flex items-center justify-center bg-slate-950 rounded-[32px] border border-slate-800 overflow-hidden">
+                {revealedQr.includes(table.id) ? (
+                  <div className="bg-white p-6 rounded-3xl animate-in zoom-in-95 duration-300">
+                    <QRCodeCanvas 
+                      id={`qr-${table.id}`}
+                      value={getTableUrl(table.id)} 
+                      size={180} 
+                      level="H" 
+                      includeMargin={false}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4 text-slate-700">
+                    <QrCode size={80} strokeWidth={1} />
+                    <button 
+                      onClick={() => toggleQr(table.id)}
+                      className="text-[10px] uppercase font-black tracking-widest hover:text-orange-500 transition-colors"
+                    >
+                      Revelar Código
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <div className="w-full flex gap-3">
+              <div className="w-full grid grid-cols-2 gap-3">
                 <button 
-                  onClick={() => window.open(getTableUrl(table.id), '_blank')}
-                  className="flex-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 py-3 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 transition-all"
+                  onClick={() => openComanda(table)}
+                  className="bg-orange-600 hover:bg-orange-500 py-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-all active:scale-95 shadow-lg shadow-orange-900/20"
                 >
-                  <ExternalLink size={14} /> Abrir
+                  <Receipt size={16} /> Comanda
                 </button>
-                <button 
-                  onClick={() => removeTable(table.id)}
-                  className="w-12 bg-slate-950 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/50 py-3 rounded-2xl flex items-center justify-center text-slate-600 hover:text-red-500 transition-all"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="flex gap-2">
+                   <button 
+                     onClick={() => downloadQr(table.id, table.number)}
+                     disabled={!revealedQr.includes(table.id)}
+                     className="flex-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 py-4 rounded-2xl flex items-center justify-center text-slate-300 transition-all"
+                   >
+                     <Download size={18} />
+                   </button>
+                   <button 
+                     onClick={() => removeTable(table.id)}
+                     className="w-12 bg-slate-950 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/50 py-4 rounded-2xl flex items-center justify-center text-slate-600 hover:text-red-500 transition-all"
+                   >
+                     <Trash2 size={16} />
+                   </button>
+                </div>
               </div>
 
-              <p className="text-[9px] text-slate-700 italic text-center px-4 leading-relaxed">
-                Escaneie o código acima para acessar o cardápio digital desta mesa.
-              </p>
+              <button 
+                onClick={() => window.open(getTableUrl(table.id), '_blank')}
+                className="w-full py-3 bg-slate-950 border border-slate-800 rounded-xl text-[9px] uppercase font-black tracking-widest text-slate-500 hover:text-slate-300 transition-all flex items-center justify-center gap-2"
+              >
+                <ExternalLink size={12} /> Visualizar como Cliente
+              </button>
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
+
+      {/* Comanda Modal */}
+      <AnimatePresence>
+        {selectedTableOrders && (
+          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-8">
+            <motion.div 
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.9 }}
+              className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-[40px] flex flex-col max-h-[80vh] shadow-3xl"
+            >
+              <header className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900 sticky top-0 rounded-t-[40px]">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-600/20">
+                    <Receipt size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter">Comanda Digital • Mesa {selectedTableOrders.table.number}</h3>
+                    <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">{selectedTableOrders.orders.length} pedidos realizados</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={closeComanda}
+                  className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </header>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+                {selectedTableOrders.orders.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-slate-700">
+                    <Receipt size={64} strokeWidth={1} className="mb-4 opacity-20" />
+                    <p className="text-sm font-bold italic tracking-tight">Nenhum pedido ativo para esta mesa</p>
+                  </div>
+                ) : (
+                  selectedTableOrders.orders.map((order) => (
+                    <div key={order.id} className="bg-slate-950 p-6 rounded-[32px] border border-slate-800 space-y-4">
+                      <div className="flex justify-between items-center text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                        <span className="flex items-center gap-2"><Clock size={12} /> {new Date(order.createdAt).toLocaleString()}</span>
+                        <span className={`px-2 py-0.5 rounded-full border ${
+                          order.status === 'ready' ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/5' : 'border-orange-500/30 text-orange-500 bg-orange-500/5'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {order.items.map((item, i) => (
+                          <div key={i} className="flex justify-between items-center group">
+                            <span className="text-sm font-bold text-slate-200">{item.qty}x <span className="italic">{item.name}</span></span>
+                            <span className="text-xs font-mono text-slate-600">R$ {(item.price || 0).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
+                        <span className="text-xs font-black uppercase tracking-widest text-slate-500">Total Ticket</span>
+                        <span className="text-xl font-mono font-bold text-white tracking-tighter">R$ {order.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <footer className="p-8 border-t border-slate-800 bg-slate-900 rounded-b-[40px] flex justify-between items-center">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Consumo Total Acumulado</span>
+                  <span className="text-3xl font-mono font-black italic text-emerald-500 tracking-tighter">
+                    R$ {selectedTableOrders.orders.reduce((acc, o) => acc + o.total, 0).toFixed(2)}
+                  </span>
+                </div>
+                <button 
+                  onClick={finalizeTable}
+                  className="px-8 py-4 bg-white text-slate-950 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform active:scale-95 shadow-xl shadow-orange-950/20"
+                >
+                  Fechar Conta
+                </button>
+              </footer>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

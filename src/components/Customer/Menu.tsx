@@ -116,6 +116,32 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
     }
   };
 
+  const callWaiter = async () => {
+    if (!table) return;
+    try {
+      await updateDoc(doc(db, 'restaurants', 'default', 'tables', tableId), {
+        callWaiter: true,
+        updatedAt: serverTimestamp()
+      });
+      alert('Garçom chamado!');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const requestBill = async () => {
+    if (!table) return;
+    try {
+      await updateDoc(doc(db, 'restaurants', 'default', 'tables', tableId), {
+        requestBill: true,
+        updatedAt: serverTimestamp()
+      });
+      alert('Conta solicitada! Um garçom virá até você.');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (loading) return null;
 
   return (
@@ -128,12 +154,25 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
             <Check size={10} /> Live Sync Active
           </p>
         </div>
-        <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-700 active:bg-orange-600 active:text-white transition-all cursor-pointer" onClick={() => alert('Garçom chamado para a Mesa ' + table?.number)}>
+        <button 
+          onClick={callWaiter}
+          className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-700 active:bg-orange-600 active:text-white transition-all cursor-pointer"
+        >
           <Utensils size={24} />
-        </div>
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-10 pb-32 scrollbar-hide">
+        {/* Bill Request Option */}
+        {table?.status === 'busy' && !table?.requestBill && (
+          <button 
+            onClick={requestBill}
+            className="w-full py-4 bg-slate-900 border border-slate-800 rounded-[32px] flex items-center justify-center gap-3 text-slate-400 hover:text-white transition-colors"
+          >
+            <CreditCard size={18} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Pedir Conta</span>
+          </button>
+        )}
         {/* Shared Order Alert */}
         {sharedOrder && (
           <div className="bg-orange-500/10 border border-orange-500/30 p-5 rounded-[28px] flex items-center gap-4 shadow-inner">

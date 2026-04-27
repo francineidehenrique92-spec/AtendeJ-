@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, Send, X, Check, Loader2, ClipboardList, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { processVoiceCommand } from '../../services/gemini';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, serverTimestamp, doc, updateDoc, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { cn } from '../../lib/utils';
 import { decrementStock, printThermalOrder } from '../../services/inventoryService';
+import { CreditCard, UtensilsCrossed } from 'lucide-react';
 
 export default function VoiceTerminal() {
   const [isListening, setIsListening] = useState(false);
@@ -13,10 +14,17 @@ export default function VoiceTerminal() {
   const [processing, setProcessing] = useState(false);
   const [orderPreview, setOrderPreview] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tables, setTables] = useState<any[]>([]);
   
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
+    // Load Tables for alerts
+    const q = query(collection(db, 'restaurants', 'default', 'tables'), orderBy('number', 'asc'));
+    const unsubscribeTables = onSnapshot(q, (snap) => {
+      setTables(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     // Initialize Speech Recognition
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -38,7 +46,20 @@ export default function VoiceTerminal() {
         setIsListening(false);
       };
     }
+    return () => unsubscribeTables();
   }, []);
+
+  const handleResolveAlert = async (tableId: string) => {
+    try {
+      await updateDoc(doc(db, 'restaurants', 'default', 'tables', tableId), {
+        callWaiter: false,
+        requestBill: false,
+        updatedAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const toggleListening = () => {
     if (isListening) {
@@ -216,15 +237,67 @@ export default function VoiceTerminal() {
           </div>
         </div>
 
-        {/* Order Preview Section */}
-        <AnimatePresence>
-          {orderPreview && (
-            <motion.div
-              initial={{ x: 400, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 400, opacity: 0 }}
-              className="w-full md:w-[450px] bg-slate-900 rounded-[40px] border border-slate-800 flex flex-col shadow-2xl overflow-hidden"
-            >
+        {/* Right Sidebar - Alerts or Order Preview */}
+        <div className="w-full md:w-[450px] flex flex-col gap-8 overflow-hidden">
+          {/* Active Atendimento Alerts */}
+          <div className="bg-slate-900 rounded-[40px] border border-slate-800 p-8 shadow-2xl flex flex-col max-h-[400px]">
+             <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                <AlertCircle size={14} className="text-orange-500" />
+                Atendimento Ativo
+              </h3>
+              <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-black uppercase">
+                {tables.filter(t => t.callWaiter || t.requestBill).length} Chamados
+              </span>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide">
+              {tables.filter(t => t.callWaiter || t.requestBill).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-slate-700 opacity-50">
+                  <ClipboardList size={40} strokeWidth={1} className="mb-2" />
+                  <p className="text-[10px] font-black uppercase tracking-widest">Nenhum chamado ativo</p>
+                </div>
+              ) : (
+                tables.filter(t => t.callWaiter || t.requestBill).map(table => (
+                  <motion.div 
+                    initial={{ x: 20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    key={table.id} 
+                    className={`p-4 rounded-3xl border flex items-center justify-between gap-4 transition-all ${
+                      table.requestBill ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-orange-500/10 border-orange-500/30 shadow-lg shadow-orange-500/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white ${table.requestBill ? 'bg-emerald-500' : 'bg-orange-500'}`}>
+                        {table.requestBill ? <CreditCard size={20} /> : <UtensilsCrossed size={20} />}
+                      </div>
+                      <div>
+                        <p className="text-lg font-black text-white italic tracking-tight uppercase">Mesa {table.number}</p>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${table.requestBill ? 'text-emerald-500' : 'text-orange-500'}`}>
+                          {table.requestBill ? 'Pediu a Conta' : 'Chamou Garçom'}
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => handleResolveAlert(table.id)}
+                      className="bg-slate-950/80 hover:bg-slate-950 border border-slate-800/50 p-3 rounded-2xl text-slate-400 hover:text-white transition-all active:scale-90"
+                    >
+                      <Check size={18} />
+                    </button>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {orderPreview && (
+              <motion.div
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 50, opacity: 0 }}
+                className="flex-1 bg-slate-900 rounded-[40px] border border-slate-800 flex flex-col shadow-2xl overflow-hidden"
+              >
               <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
                 <h3 className="text-lg font-black italic text-white flex items-center gap-3 tracking-tight">
                   <ClipboardList size={22} className="text-orange-500" />
@@ -300,8 +373,9 @@ export default function VoiceTerminal() {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
 
-        {/* Loading Overlay */}
+      {/* Loading Overlay */}
         {processing && !orderPreview && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
             <div className="text-center space-y-4">

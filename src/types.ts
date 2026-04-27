@@ -37,5 +37,7 @@ export interface Table {
   number: number;
   status: 'free' | 'busy' | 'alert' | 'billing';
   currentOrderId?: string;
+  callWaiter?: boolean;
+  requestBill?: boolean;
   updatedAt: any;
 }

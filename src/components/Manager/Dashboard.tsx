@@ -71,6 +71,46 @@ export default function Dashboard() {
     );
   }
 
+  function ActiveAlerts() {
+    const alertTables = tables.filter(t => t.callWaiter || t.requestBill);
+
+    return (
+      <section className="bg-slate-900 border border-slate-800 rounded-[32px] p-6 flex flex-col min-h-[150px]">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+            <AlertCircle size={14} className="text-orange-500" />
+            Atendimento Live
+          </h3>
+          {alertTables.length > 0 && <span className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">{alertTables.length}</span>}
+        </div>
+        <div className="space-y-3">
+          {alertTables.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-slate-600 opacity-50">
+              <Users size={24} className="mb-2" />
+              <p className="text-[10px] font-black uppercase tracking-widest">Nenhum chamado</p>
+            </div>
+          ) : (
+            alertTables.map(table => (
+              <div key={table.id} className={`p-3 rounded-2xl border flex justify-between items-center transition-all animate-in slide-in-from-right duration-500 ${
+                table.requestBill ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-orange-500/10 border-orange-500/30'
+              }`}>
+                <div>
+                  <p className="text-xs font-black text-white uppercase tracking-tight">Mesa {table.number}</p>
+                  <p className={`text-[9px] font-black uppercase tracking-widest ${table.requestBill ? 'text-emerald-500' : 'text-orange-500'}`}>
+                    {table.requestBill ? 'Solicitou Conta' : 'Chamou Garçom'}
+                  </p>
+                </div>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${table.requestBill ? 'bg-emerald-500 text-white' : 'bg-orange-500 text-white'}`}>
+                   {table.requestBill ? <CreditCard size={14} /> : <UtensilsCrossed size={14} />}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+    );
+  }
+
   const stats = [
     { label: 'Ticket Médio', value: 'R$ 78,50', icon: TrendingUp, color: 'text-emerald-500' },
     { label: 'Mesas Ativas', value: tables.filter(t => t.status !== 'free').length, icon: Users, color: 'text-blue-500' },
@@ -136,6 +176,9 @@ export default function Dashboard() {
 
         {/* Side Panels */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+          {/* Active Atendimento Alerts */}
+          <ActiveAlerts />
+
           {/* AI Voice Feed - Bento */}
           <section className="bg-slate-900 border border-slate-800 rounded-[32px] p-6 flex flex-col h-[300px]">
              <div className="flex items-center justify-between mb-6">
