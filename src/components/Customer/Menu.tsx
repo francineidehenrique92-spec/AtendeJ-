@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, query, where, getDocs, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { MenuItem, Order, Table } from '../../types';
-import { ShoppingBag, Plus, Minus, Check, CreditCard, Star, Search, Clock, Utensils } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Check, CreditCard, Star, Search, Clock, Utensils, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { decrementStock, printThermalOrder } from '../../services/inventoryService';
 
 export default function CustomerMenu({ tableId }: { tableId: string }) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -91,14 +92,25 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
       };
 
       await addDoc(collection(db, 'restaurants', 'default', 'orders'), orderData);
+      
+      // Update table status
       await updateDoc(doc(db, 'restaurants', 'default', 'tables', tableId), {
         status: 'busy',
         updatedAt: serverTimestamp()
       });
 
+      // Decrement Inventory
+      await decrementStock(cart.map(item => ({ name: item.name, qty: item.qty }))).catch(console.error);
+
+      // Simulate Thermal Printer
+      printThermalOrder({
+        tableNumber: table?.number || '?',
+        items: cart.map(item => ({ name: item.name, qty: item.qty }))
+      });
+
       setCart([]);
       setCheckoutVisible(false);
-      alert('Pedido realizado com sucesso!');
+      alert('Pedido realizado com sucesso e enviado para a cozinha!');
     } catch (err) {
       console.error(err);
     }

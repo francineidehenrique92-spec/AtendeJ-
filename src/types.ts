@@ -2,9 +2,13 @@ export interface MenuItem {
   id: string;
   name: string;
   price: number;
+  costPrice?: number;
+  profitMargin?: number;
   category: string;
   description: string;
   image?: string;
+  stock: number;
+  minStock: number;
 }
 
 export interface OrderItem {

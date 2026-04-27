@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutGrid, Utensils, QrCode, ClipboardList, LogOut } from 'lucide-react';
+import { LayoutGrid, Package, ChefHat, Utensils, QrCode, ClipboardList, LogOut } from 'lucide-react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import Dashboard from './components/Manager/Dashboard';
+import InventoryManager from './components/Manager/Inventory';
+import TableManager from './components/Manager/Tables';
+import KDS from './components/Manager/KDS';
 import VoiceTerminal from './components/Waiter/VoiceTerminal';
 import CustomerMenu from './components/Customer/Menu';
 import { initializeMockData } from './mockData';
@@ -56,6 +59,9 @@ export default function App() {
         <main className="flex-1 overflow-hidden">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/tables" element={<TableManager />} />
+            <Route path="/inventory" element={<InventoryManager />} />
+            <Route path="/kds" element={<KDS />} />
             <Route path="/waiter" element={<VoiceTerminal />} />
             <Route path="/customer" element={<CustomerMenu tableId="table-1" />} />
             <Route path="/customer/:tableId" element={<CustomerMenuWrapper />} />
@@ -69,9 +75,12 @@ export default function App() {
 function Nav() {
   const location = useLocation();
   const menuItems = [
-    { name: 'Gerente', path: '/', icon: LayoutGrid },
-    { name: 'Garçom', path: '/waiter', icon: ClipboardList },
-    { name: 'QR Menu', path: '/customer', icon: QrCode },
+    { name: 'Dashboard', path: '/', icon: LayoutGrid },
+    { name: 'Mesas QR', path: '/tables', icon: QrCode },
+    { name: 'KDS Cozinha', path: '/kds', icon: ChefHat },
+    { name: 'Inventário', path: '/inventory', icon: Package },
+    { name: 'Garçom Voz', path: '/waiter', icon: ClipboardList },
+    { name: 'Menu Demo', path: '/customer', icon: Utensils },
   ];
 
   return (

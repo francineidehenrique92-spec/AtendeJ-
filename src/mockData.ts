@@ -2,12 +2,12 @@ import { collection, doc, writeBatch, getDocs, query, limit } from 'firebase/fir
 import { db } from './lib/firebase';
 
 const MENU_ITEMS = [
-  { name: 'Picanha fatiada', price: 89.90, category: 'Carnes', description: 'Picanha angus fatiada no ponto desejado.' },
-  { name: 'Hambúrguer Gourmet', price: 42.00, category: 'Lanches', description: 'Blend de 180g, queijo cheddar, bacon e maionese artesanal.' },
-  { name: 'Batata Frita', price: 28.00, category: 'Acompanhamentos', description: 'Porção generosa de batatas crocantes.' },
-  { name: 'Coca-Cola 350ml', price: 7.50, category: 'Bebidas', description: 'Lata gelada.' },
-  { name: 'Cerveja Original', price: 14.00, category: 'Bebidas', description: 'Garrafa 600ml trincando.' },
-  { name: 'Suco de Laranja', price: 12.00, category: 'Bebidas', description: 'Natural, espremido na hora.' }
+  { name: 'Picanha fatiada', price: 89.90, category: 'Carnes', description: 'Picanha angus fatiada no ponto desejado.', stock: 15, minStock: 5 },
+  { name: 'Hambúrguer Gourmet', price: 42.00, category: 'Lanches', description: 'Blend de 180g, queijo cheddar, bacon e maionese artesanal.', stock: 30, minStock: 8 },
+  { name: 'Batata Frita', price: 28.00, category: 'Acompanhamentos', description: 'Porção generosa de batatas crocantes.', stock: 50, minStock: 15 },
+  { name: 'Coca-Cola 350ml', price: 7.50, category: 'Bebidas', description: 'Lata gelada.', stock: 100, minStock: 24 },
+  { name: 'Cerveja Original', price: 14.00, category: 'Bebidas', description: 'Garrafa 600ml trincando.', stock: 80, minStock: 20 },
+  { name: 'Suco de Laranja', price: 12.00, category: 'Bebidas', description: 'Natural, espremido na hora.', stock: 40, minStock: 10 }
 ];
 
 export async function initializeMockData() {

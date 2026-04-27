@@ -5,6 +5,7 @@ import { processVoiceCommand } from '../../services/gemini';
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { cn } from '../../lib/utils';
+import { decrementStock, printThermalOrder } from '../../services/inventoryService';
 
 export default function VoiceTerminal() {
   const [isListening, setIsListening] = useState(false);
@@ -97,9 +98,27 @@ export default function VoiceTerminal() {
         updatedAt: serverTimestamp()
       });
 
+      // Decrement Inventory
+      const itemsToDecrement = orderData.items.map((it: any) => ({
+        name: it.produto,
+        qty: it.qtd
+      }));
+      await decrementStock(itemsToDecrement).catch(console.error);
+
+      // Simulate Thermal Printer
+      printThermalOrder({
+        tableNumber: mesa,
+        items: orderData.items.map((it: any) => ({
+          name: it.produto,
+          qty: it.qtd,
+          ponto: it.ponto,
+          obs: it.obs
+        }))
+      });
+
       setOrderPreview(null);
       setTranscript('');
-      alert('Pedido enviado para a cozinha!');
+      alert('Pedido enviado para a cozinha e impresso com sucesso!');
     } catch (err) {
       setError('Erro ao salvar pedido');
     } finally {
@@ -146,6 +165,21 @@ export default function VoiceTerminal() {
               )}
             >
               {isListening ? <MicOff size={64} className="text-white" /> : <Mic size={64} className="text-white" />}
+              
+              {/* Sound Waves Animation */}
+              {isListening && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  {[...Array(3)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ scale: 1, opacity: 0.5 }}
+                      animate={{ scale: 2, opacity: 0 }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.5 }}
+                      className="absolute inset-0 border-2 border-red-500 rounded-full"
+                    />
+                  ))}
+                </div>
+              )}
             </motion.button>
 
             <div className="text-center space-y-3">
@@ -157,13 +191,27 @@ export default function VoiceTerminal() {
               </p>
             </div>
 
-            <div className="w-full max-w-xl bg-slate-950 border border-slate-800 p-6 rounded-[24px] shadow-inner">
-              <p className={cn(
-                "text-base italic leading-relaxed text-center",
-                transcript ? "text-slate-200" : "text-slate-700"
-              )}>
-                {transcript || "O conteúdo processado aparecerá aqui..."}
-              </p>
+            <div className="w-full max-w-xl space-y-4">
+              <div className="bg-slate-950 border border-slate-800 p-6 rounded-[24px] shadow-inner">
+                <textarea
+                  value={transcript}
+                  onChange={(e) => setTranscript(e.target.value)}
+                  placeholder="Sua fala aparecerá aqui ou digite o comando manualmente..."
+                  className="w-full bg-transparent border-none focus:ring-0 text-base italic leading-relaxed text-center text-slate-200 resize-none h-24 placeholder:text-slate-700"
+                />
+              </div>
+              
+              {!isListening && transcript && (
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={handleProcessCommand}
+                  className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+                >
+                  <Send size={18} />
+                  Processar Comando Manual
+                </motion.button>
+              )}
             </div>
           </div>
         </div>

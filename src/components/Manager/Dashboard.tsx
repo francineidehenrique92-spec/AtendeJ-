@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { Link } from 'react-router-dom';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { Table, Order } from '../../types';
-import { Users, Timer, TrendingUp, AlertCircle, CheckCircle2, Clock, UtensilsCrossed, ClipboardList } from 'lucide-react';
+import { Table, Order, MenuItem } from '../../types';
+import { Users, Timer, TrendingUp, AlertCircle, CheckCircle2, Clock, UtensilsCrossed, ClipboardList, AlertTriangle, Package, QrCode } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 export default function Dashboard() {
   const [tables, setTables] = useState<Table[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
   useEffect(() => {
     const qTables = query(collection(db, 'restaurants', 'default', 'tables'), orderBy('number', 'asc'));
@@ -16,16 +18,58 @@ export default function Dashboard() {
       setTables(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Table)));
     });
 
-    const qOrders = query(collection(db, 'restaurants', 'default', 'orders'), orderBy('createdAt', 'desc'));
+    const qOrders = query(collection(db, 'restaurants', 'default', 'orders'), orderBy('createdAt', 'desc'), limit(10));
     const unsubscribeOrders = onSnapshot(qOrders, (snap) => {
       setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+    });
+
+    const qMenu = query(collection(db, 'restaurants', 'default', 'menus', 'main', 'items'));
+    const unsubscribeMenu = onSnapshot(qMenu, (snap) => {
+      setMenuItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem)));
     });
 
     return () => {
       unsubscribeTables();
       unsubscribeOrders();
+      unsubscribeMenu();
     };
   }, []);
+
+  const lowStockItems = menuItems.filter(item => item.stock <= item.minStock);
+
+  function LowStockAlerts() {
+    return (
+      <section className="bg-slate-900 border border-slate-800 rounded-[32px] p-6 flex flex-col min-h-[200px]">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+            <AlertTriangle size={14} className="text-orange-500" />
+            Alertas de Estoque
+          </h3>
+          {lowStockItems.length > 0 && <span className="bg-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">{lowStockItems.length}</span>}
+        </div>
+        <div className="space-y-3">
+          {lowStockItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-slate-600 opacity-50">
+              <Package size={24} className="mb-2" />
+              <p className="text-[10px] font-black uppercase tracking-widest">Estoque OK</p>
+            </div>
+          ) : (
+            lowStockItems.slice(0, 3).map(item => (
+              <div key={item.id} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex justify-between items-center">
+                <div>
+                  <p className="text-xs font-bold text-white">{item.name}</p>
+                  <p className="text-[9px] text-red-500 font-black uppercase">Crítico: {item.stock} un</p>
+                </div>
+                <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500">
+                   <AlertCircle size={14} />
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+    );
+  }
 
   const stats = [
     { label: 'Ticket Médio', value: 'R$ 78,50', icon: TrendingUp, color: 'text-emerald-500' },
@@ -46,9 +90,17 @@ export default function Dashboard() {
   return (
     <div className="h-screen overflow-y-auto p-6 md:p-8 space-y-6 bg-slate-950 text-slate-200">
       <header className="flex justify-between items-center bg-slate-900/50 border border-slate-800 rounded-3xl p-6">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-white italic">Monitoramento <span className="text-orange-500">Live</span></h2>
-          <p className="text-xs text-slate-500 italic">GastroVoz AI • Unidade Principal</p>
+        <div className="flex items-center gap-6">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-white italic">Monitoramento <span className="text-orange-500">Live</span></h2>
+            <p className="text-xs text-slate-500 italic">GastroVoz AI • Unidade Principal</p>
+          </div>
+          <Link 
+            to="/tables"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-orange-500 transition-all active:scale-95"
+          >
+            <QrCode size={14} /> Configurar Mesas
+          </Link>
         </div>
         <div className="flex gap-6">
           <div className="flex flex-col items-end">
@@ -85,7 +137,7 @@ export default function Dashboard() {
         {/* Side Panels */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
           {/* AI Voice Feed - Bento */}
-          <section className="bg-slate-900 border border-slate-800 rounded-[32px] p-6 flex flex-col h-[400px]">
+          <section className="bg-slate-900 border border-slate-800 rounded-[32px] p-6 flex flex-col h-[300px]">
              <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -104,14 +156,13 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-300 italic mb-3 leading-relaxed">
                     "{order.items.map(i => `${i.qty}x ${i.name}`).join(', ')}..."
                   </p>
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-800">
-                    <span className="text-[10px] font-mono text-emerald-400">R$ {order.total.toFixed(2)}</span>
-                    <span className="text-[10px] text-slate-500 font-bold uppercase">Processado ✓</span>
-                  </div>
                 </div>
               ))}
             </div>
           </section>
+
+          {/* New Low Stock Alerts */}
+          <LowStockAlerts />
 
           {/* Quick Insights - Horizontal Bento */}
           <section className="bg-gradient-to-br from-orange-600 to-orange-800 rounded-[32px] p-8 text-white shadow-xl shadow-orange-950/20">
