@@ -11,29 +11,33 @@ const MENU_ITEMS = [
 ];
 
 export async function initializeMockData() {
-  const tablesRef = collection(db, 'restaurants', 'default', 'tables');
-  const snap = await getDocs(query(tablesRef, limit(1)));
-  
-  if (!snap.empty) return; // Already initialized
+  try {
+    const tablesRef = collection(db, 'restaurants', 'default', 'tables');
+    const snap = await getDocs(query(tablesRef, limit(1)));
+    
+    if (!snap.empty) return; // Already initialized
 
-  const batch = writeBatch(db);
+    const batch = writeBatch(db);
 
-  // Initialize Tables
-  for (let i = 1; i <= 12; i++) {
-    const tableId = `table-${i}`;
-    batch.set(doc(db, 'restaurants', 'default', 'tables', tableId), {
-      number: i,
-      status: 'free',
-      updatedAt: new Date().toISOString()
+    // Initialize Tables
+    for (let i = 1; i <= 12; i++) {
+      const tableId = `table-${i}`;
+      batch.set(doc(db, 'restaurants', 'default', 'tables', tableId), {
+        number: i,
+        status: 'free',
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    // Initialize Menu
+    const menuRef = collection(db, 'restaurants', 'default', 'menus', 'main', 'items');
+    MENU_ITEMS.forEach((item, index) => {
+      batch.set(doc(menuRef, `item-${index}`), item);
     });
+
+    await batch.commit();
+    console.log('Mock data initialized');
+  } catch (err) {
+    console.error('Error initializing mock data:', err);
   }
-
-  // Initialize Menu
-  const menuRef = collection(db, 'restaurants', 'default', 'menus', 'main', 'items');
-  MENU_ITEMS.forEach((item, index) => {
-    batch.set(doc(menuRef, `item-${index}`), item);
-  });
-
-  await batch.commit();
-  console.log('Mock data initialized');
 }

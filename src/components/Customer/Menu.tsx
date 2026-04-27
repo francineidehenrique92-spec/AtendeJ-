@@ -116,7 +116,7 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
             <Check size={10} /> Live Sync Active
           </p>
         </div>
-        <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-700">
+        <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-700 active:bg-orange-600 active:text-white transition-all cursor-pointer" onClick={() => alert('Garçom chamado para a Mesa ' + table?.number)}>
           <Utensils size={24} />
         </div>
       </div>
@@ -202,6 +202,19 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
           <button className="w-full py-4 bg-white text-orange-700 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl hover:bg-orange-50 transition-all relative z-10">
             Aproveitar Agora
           </button>
+        </div>
+
+        {/* Feedback Section */}
+        <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-[40px] text-center space-y-4">
+          <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">O que achou do atendimento?</h4>
+          <div className="flex justify-center gap-3">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button key={star} className="text-slate-700 hover:text-orange-500 transition-colors">
+                <Star size={24} fill={star <= 4 ? "currentColor" : "none"} className={star <= 4 ? "text-orange-500" : ""} />
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-600 italic">Sua opinião ajuda a melhorar nossa IA</p>
         </div>
       </div>
 

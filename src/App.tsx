@@ -13,17 +13,29 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        // Automatically sign in anonymously for demo purposes
-        await signInAnonymously(auth);
-      } else {
-        setUser(user);
-        await initializeMockData();
-      }
+    const timeout = setTimeout(() => {
       setLoading(false);
+    }, 5000); // Fail-safe: force hide loading after 5s
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
+        if (!user) {
+          await signInAnonymously(auth);
+        } else {
+          setUser(user);
+          await initializeMockData().catch(console.error);
+        }
+      } catch (err) {
+        console.error("Auth/Init Error:", err);
+      } finally {
+        setLoading(false);
+        clearTimeout(timeout);
+      }
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   if (loading) {
