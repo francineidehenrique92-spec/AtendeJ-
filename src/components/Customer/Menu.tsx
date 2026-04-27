@@ -24,8 +24,21 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
     });
 
     // Load Table Status
-    const unsubscribeTable = onSnapshot(doc(db, 'restaurants', 'default', 'tables', tableId), (snap) => {
-      setTable({ id: snap.id, ...snap.data() } as Table);
+    const tableRef = doc(db, 'restaurants', 'default', 'tables', tableId);
+    const unsubscribeTable = onSnapshot(tableRef, (snap) => {
+      if (snap.exists()) {
+        setTable({ id: snap.id, ...snap.data() } as Table);
+        setLoading(false);
+      } else {
+        // Try finding by number if ID not found (fallback for intuitive URLs)
+        const qTableByNum = query(collection(db, 'restaurants', 'default', 'tables'), where('number', '==', parseInt(tableId)));
+        getDocs(qTableByNum).then(snapNum => {
+          if (!snapNum.empty) {
+            setTable({ id: snapNum.docs[0].id, ...snapNum.docs[0].data() } as Table);
+          }
+          setLoading(false);
+        });
+      }
     });
 
     // Load Live Shared Order for this table (if any)
@@ -41,8 +54,7 @@ export default function CustomerMenu({ tableId }: { tableId: string }) {
         setSharedOrder(null);
       }
     });
-
-    setLoading(false);
+    
     return () => {
       unsubscribeMenu();
       unsubscribeTable();

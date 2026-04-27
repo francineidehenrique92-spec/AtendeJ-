@@ -4,6 +4,7 @@ import { db } from '../../lib/firebase';
 import { Order, Table } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Clock, CheckCircle2, AlertCircle, ChefHat, Timer } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 export default function KDS() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -26,6 +27,12 @@ export default function KDS() {
     };
   }, []);
 
+  const startOrder = async (orderId: string) => {
+    await updateDoc(doc(db, 'restaurants', 'default', 'orders', orderId), {
+      status: 'preparing'
+    });
+  };
+
   const completeOrder = async (orderId: string) => {
     await updateDoc(doc(db, 'restaurants', 'default', 'orders', orderId), {
       status: 'ready'
@@ -35,6 +42,8 @@ export default function KDS() {
   const getTableNumber = (tableId: string) => {
     return tables.find(t => t.id === tableId)?.number || '?';
   };
+
+  const activeOrders = orders.filter(o => ['pending', 'preparing'].includes(o.status));
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 text-gray-900 overflow-hidden">
@@ -51,19 +60,19 @@ export default function KDS() {
         <div className="flex gap-8">
           <div className="flex flex-col items-end">
              <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Fila de Produção</span>
-             <span className="text-2xl font-mono text-gray-900 font-bold">{orders.filter(o => o.status === 'preparing').length} <span className="text-xs text-gray-400 font-sans">pedidos</span></span>
+             <span className="text-2xl font-mono text-gray-900 font-bold">{activeOrders.length} <span className="text-xs text-gray-400 font-sans">pedidos</span></span>
           </div>
           <div className="w-px h-12 bg-gray-100" />
           <div className="flex flex-col items-end">
-             <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Tempo Médio</span>
-             <span className="text-2xl font-mono text-orange-600 font-bold">14m</span>
+             <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Aguardando</span>
+             <span className="text-2xl font-mono text-orange-600 font-bold">{orders.filter(o => o.status === 'pending').length}</span>
           </div>
         </div>
       </header>
 
       <main className="flex-1 p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 overflow-y-auto scrollbar-hide">
         <AnimatePresence>
-          {orders.filter(o => o.status === 'preparing').map((order, idx) => (
+          {activeOrders.map((order) => (
             <motion.div
               layout
               initial={{ scale: 0.8, opacity: 0 }}
@@ -73,14 +82,18 @@ export default function KDS() {
               key={order.id}
               className="bg-white border border-gray-200 rounded-[40px] flex flex-col shadow-sm relative overflow-hidden group h-fit"
             >
-              {/* Urgency Indicator */}
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-orange-600" />
+              {/* Status Indicator */}
+              <div className={cn(
+                "absolute top-0 left-0 w-full h-1.5 transition-colors",
+                order.status === 'pending' ? 'bg-orange-500' : 'bg-emerald-500'
+              )} />
               
               <div className="p-8 pb-4 flex justify-between items-start">
                 <div>
                   <h3 className="text-4xl font-black italic text-gray-900 mb-1">Mesa {getTableNumber(order.tableId)}</h3>
                   <div className="flex items-center gap-2 text-gray-400 font-black text-[10px] uppercase tracking-widest">
                     <Clock size={12} /> {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <span className="ml-2 font-mono opacity-50 px-2 py-0.5 border border-gray-100 rounded-full">{order.type === 'waiter' ? 'GARÇOM' : 'CLIENTE'}</span>
                   </div>
                 </div>
                 <div className="bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100 text-center">
@@ -113,14 +126,24 @@ export default function KDS() {
                 ))}
               </div>
 
-              <div className="p-8 pt-0">
-                <button
-                  onClick={() => completeOrder(order.id)}
-                  className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl font-black uppercase tracking-[0.2em] text-xs shadow-lg shadow-emerald-100 transition-all flex items-center justify-center gap-3 active:scale-95"
-                >
-                  <CheckCircle2 size={20} />
-                  Pedido Pronto
-                </button>
+              <div className="p-8 pt-0 flex gap-4">
+                {order.status === 'pending' ? (
+                  <button
+                    onClick={() => startOrder(order.id)}
+                    className="w-full py-5 bg-orange-600 hover:bg-orange-500 text-white rounded-3xl font-black uppercase tracking-[0.2em] text-xs shadow-lg shadow-orange-100 transition-all flex items-center justify-center gap-3 active:scale-95"
+                  >
+                    <Timer size={20} />
+                    Iniciar Preparo
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => completeOrder(order.id)}
+                    className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl font-black uppercase tracking-[0.2em] text-xs shadow-lg shadow-emerald-100 transition-all flex items-center justify-center gap-3 active:scale-95"
+                  >
+                    <CheckCircle2 size={20} />
+                    Pedido Pronto
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}

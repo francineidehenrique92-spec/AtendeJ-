@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { MenuItem } from '../../types';
-import { motion } from 'motion/react';
-import { Package, AlertTriangle, TrendingUp, Upload, FileText, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Package, AlertTriangle, TrendingUp, Upload, FileText, Loader2, Plus, X } from 'lucide-react';
 import { processInvoiceWithAI } from '../../services/inventoryService';
 
 export default function InventoryManager() {
@@ -11,6 +11,16 @@ export default function InventoryManager() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [invoiceText, setInvoiceText] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newItem, setNewItem] = useState({
+    name: '',
+    category: 'Carnes',
+    price: '',
+    costPrice: '',
+    stock: '',
+    minStock: '5',
+    description: ''
+  });
 
   useEffect(() => {
     const q = query(collection(db, 'restaurants', 'default', 'menus', 'main', 'items'));
@@ -19,6 +29,37 @@ export default function InventoryManager() {
       setLoading(false);
     });
   }, []);
+
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProcessing(true);
+    try {
+      await addDoc(collection(db, 'restaurants', 'default', 'menus', 'main', 'items'), {
+        name: newItem.name,
+        category: newItem.category,
+        price: parseFloat(newItem.price),
+        costPrice: parseFloat(newItem.costPrice) || 0,
+        stock: parseInt(newItem.stock),
+        minStock: parseInt(newItem.minStock),
+        description: newItem.description,
+        createdAt: serverTimestamp()
+      });
+      setNewItem({
+        name: '',
+        category: 'Carnes',
+        price: '',
+        costPrice: '',
+        stock: '',
+        minStock: '5',
+        description: ''
+      });
+      setShowAddForm(false);
+    } catch (err) {
+      alert("Erro ao cadastrar item.");
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const handleInvoiceUpload = async () => {
     if (!invoiceText) return;
@@ -42,6 +83,13 @@ export default function InventoryManager() {
           <p className="text-xs text-gray-400 uppercase tracking-widest font-black leading-none mt-1">Escaneamento de Notas & Controle de Estoque</p>
         </div>
         <div className="flex gap-4">
+          <button 
+            onClick={() => setShowAddForm(true)}
+            className="px-6 py-4 bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-2 hover:scale-105 transition-transform"
+          >
+            <Plus size={18} />
+            Novo Item
+          </button>
           <div className="bg-gray-50 p-4 rounded-3xl border border-gray-100 text-right">
             <span className="text-[10px] text-gray-400 block uppercase font-black">Meta de Lucro</span>
             <span className="text-xl font-mono text-emerald-600 font-bold">150%</span>
@@ -50,6 +98,109 @@ export default function InventoryManager() {
       </header>
 
       <div className="grid grid-cols-12 gap-8">
+        {/* Registration Modal */}
+        <AnimatePresence>
+          {showAddForm && (
+            <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-8">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-white border border-gray-200 w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+              >
+                <header className="p-8 border-b border-gray-100 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-2xl font-black italic text-gray-900 uppercase tracking-tighter">GastroVoz • Cadastro</h3>
+                    <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Adicionar novo produto ao cardápio</p>
+                  </div>
+                  <button onClick={() => setShowAddForm(false)} className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-500 hover:text-gray-900">
+                    <X size={24} />
+                  </button>
+                </header>
+                
+                <form onSubmit={handleAddItem} className="p-8 space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="col-span-2">
+                      <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2">Nome do Produto</label>
+                      <input 
+                        required
+                        value={newItem.name}
+                        onChange={e => setNewItem({...newItem, name: e.target.value})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3 font-bold italic outline-none focus:border-orange-500 transition-colors"
+                        placeholder="Ex: Picanha na Chapa"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2">Categoria</label>
+                      <select 
+                        value={newItem.category}
+                        onChange={e => setNewItem({...newItem, category: e.target.value})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3 font-bold italic outline-none focus:border-orange-500 transition-colors"
+                      >
+                        <option>Carnes</option>
+                        <option>Bebidas</option>
+                        <option>Lanches</option>
+                        <option>Porções</option>
+                        <option>Sobremesas</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2">Preço de Venda (R$)</label>
+                      <input 
+                        required
+                        type="number"
+                        step="0.01"
+                        value={newItem.price}
+                        onChange={e => setNewItem({...newItem, price: e.target.value})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3 font-bold italic outline-none focus:border-orange-500 transition-colors"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2">Estoque Inicial</label>
+                      <input 
+                        required
+                        type="number"
+                        value={newItem.stock}
+                        onChange={e => setNewItem({...newItem, stock: e.target.value})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3 font-bold italic outline-none focus:border-orange-500 transition-colors"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2">Min. Alerta</label>
+                      <input 
+                        required
+                        type="number"
+                        value={newItem.minStock}
+                        onChange={e => setNewItem({...newItem, minStock: e.target.value})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3 font-bold italic outline-none focus:border-orange-500 transition-colors"
+                        placeholder="5"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2">Descrição Curta</label>
+                      <input 
+                        value={newItem.description}
+                        onChange={e => setNewItem({...newItem, description: e.target.value})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3 font-bold italic outline-none focus:border-orange-500 transition-colors"
+                        placeholder="Ex: Corte angus de 400g..."
+                      />
+                    </div>
+                  </div>
+                  <button 
+                    disabled={processing}
+                    className="w-full py-5 bg-gray-900 text-white rounded-3xl font-black uppercase tracking-widest text-xs hover:bg-black transition-all flex items-center justify-center gap-2"
+                  >
+                    {processing ? <Loader2 className="animate-spin" /> : <Plus size={18} />}
+                    Cadastrar Item
+                  </button>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* Invoice Scanner */}
         <section className="col-span-12 lg:col-span-5 bg-white border border-gray-200 rounded-[40px] p-8 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-5 text-gray-900">

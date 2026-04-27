@@ -71,6 +71,14 @@ export default function TableManager() {
     if (!selectedTableOrders) return;
     try {
       const tableId = selectedTableOrders.table.id;
+      
+      // Mark all current orders as paid
+      const updatePromises = selectedTableOrders.orders
+        .filter(o => o.status !== 'paid')
+        .map(o => updateDoc(doc(db, 'restaurants', 'default', 'orders', o.id), { status: 'paid' }));
+      
+      await Promise.all(updatePromises);
+
       await updateDoc(doc(db, 'restaurants', 'default', 'tables', tableId), {
         status: 'free',
         callWaiter: false,

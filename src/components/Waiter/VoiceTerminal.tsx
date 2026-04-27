@@ -94,8 +94,14 @@ export default function VoiceTerminal() {
     if (!orderPreview) return;
     setProcessing(true);
     try {
-      const { mesa, tipo_acao } = orderPreview.header;
-      const tableId = `table-${mesa}`;
+      const { mesa } = orderPreview.header;
+      
+      // Find the actual document ID for the table number
+      const targetTable = tables.find(t => t.number === parseInt(mesa));
+      if (!targetTable) {
+        throw new Error(`Mesa ${mesa} não encontrada no sistema.`);
+      }
+      const tableId = targetTable.id;
       
       // Create order
       const orderData = {
