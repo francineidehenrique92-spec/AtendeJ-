@@ -3,7 +3,8 @@ import { collection, onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc,
 import { db } from '../../lib/firebase';
 import { Table, Order } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { QrCode, Plus, Trash2, ExternalLink, Download, Eye, EyeOff, Receipt, X, Clock } from 'lucide-react';
+import { QrCode, Plus, Trash2, ExternalLink, Download, Eye, EyeOff, Receipt, X, Clock, Square } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import { QRCodeCanvas } from 'qrcode.react';
 
 export default function TableManager() {
@@ -145,7 +146,16 @@ export default function TableManager() {
             >
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <h3 className="text-5xl font-black italic text-gray-900 uppercase tracking-tighter">Mesa {table.number}</h3>
+                  {/* Miniature visual icon */}
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg border flex items-center justify-center transition-colors",
+                    table.status === 'free' ? 'border-gray-200 bg-gray-50 text-gray-300' : 'border-orange-500 bg-orange-50 text-orange-600'
+                  )}>
+                    <div className="w-4 h-4 rounded-full border border-current flex items-center justify-center text-[8px] font-black italic">
+                      {table.number}
+                    </div>
+                  </div>
+                  <h3 className="text-4xl font-black italic text-gray-900 uppercase tracking-tighter">Mesa {table.number}</h3>
                   {table.status !== 'free' && (
                     <div className="w-3 h-3 rounded-full bg-orange-500 animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
                   )}
@@ -153,7 +163,12 @@ export default function TableManager() {
                 <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Digital Hub #{table.id.slice(-4)}</span>
               </div>
 
-              <div className="relative w-full aspect-square flex items-center justify-center bg-gray-50 rounded-[32px] border border-gray-200 overflow-hidden">
+              <div className="relative w-full aspect-square flex items-center justify-center bg-gray-50 rounded-[32px] border border-gray-200 overflow-hidden relative">
+                {/* Visual Table Base */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
+                  <Square size={200} strokeWidth={1} />
+                </div>
+
                 {revealedQr.includes(table.id) ? (
                   <div className="bg-white p-6 rounded-3xl animate-in zoom-in-95 duration-300">
                     <QRCodeCanvas 

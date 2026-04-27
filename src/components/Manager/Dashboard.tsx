@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Table, Order, MenuItem } from '../../types';
-import { Users, Timer, TrendingUp, AlertCircle, CheckCircle2, Clock, UtensilsCrossed, ClipboardList, AlertTriangle, Package, QrCode, CreditCard } from 'lucide-react';
+import { Users, Timer, TrendingUp, AlertCircle, CheckCircle2, Clock, UtensilsCrossed, ClipboardList, AlertTriangle, Package, QrCode, CreditCard, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { cn } from '../../lib/utils';
 
 export default function Dashboard() {
   const [tables, setTables] = useState<Table[]>([]);
@@ -208,9 +209,14 @@ export default function Dashboard() {
           <LowStockAlerts />
 
           {/* Quick Insights - Horizontal Bento */}
-          <section className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-[32px] p-8 text-white shadow-lg shadow-orange-200">
-            <h3 className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-4">Upsell Inteligente</h3>
-            <div className="flex items-end justify-between">
+          <section className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-[32px] p-8 text-white shadow-lg shadow-orange-200 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 group-hover:rotate-45 transition-transform duration-700">
+              <TrendingUp size={120} />
+            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-4 flex items-center gap-2">
+               <TrendingUp size={12} /> Insights Premium gastrovoz 
+            </h3>
+            <div className="flex items-end justify-between relative z-10">
               <div>
                 <p className="text-5xl font-black italic tracking-tighter">+24%</p>
                 <p className="text-xs font-medium opacity-80 mt-1">Ticket Médio via IA</p>
@@ -222,6 +228,25 @@ export default function Dashboard() {
                 <p className="text-[9px] font-black uppercase tracking-tighter opacity-60">Performance Meta</p>
               </div>
             </div>
+          </section>
+
+          {/* SaaS Ideas Section */}
+          <section className="bg-gray-900 border border-gray-800 rounded-[32px] p-6 space-y-4 shadow-xl">
+             <h3 className="text-[10px] font-black uppercase tracking-widest text-orange-500">Próximos Passos SAAS</h3>
+             <div className="space-y-3">
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group">
+                   <p className="text-[10px] font-bold text-white group-hover:text-orange-400">Plano de Salão Customizado</p>
+                   <p className="text-[9px] text-gray-500">Arraste e solte mesas no mapa.</p>
+                </div>
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group">
+                   <p className="text-[10px] font-bold text-white group-hover:text-orange-400">Previsão de Demanda IA</p>
+                   <p className="text-[9px] text-gray-500">Saiba quanto vai vender amanhã.</p>
+                </div>
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group">
+                   <p className="text-[10px] font-bold text-white group-hover:text-orange-400">Gestão de Garçons</p>
+                   <p className="text-[9px] text-gray-500">Ranking de produtividade por voz.</p>
+                </div>
+             </div>
           </section>
 
           {/* Fluxo de Vendas */}
@@ -263,31 +288,69 @@ export default function Dashboard() {
 }
 
 function TableCard({ table }: { table: Table }) {
-  const statusStyles = {
-    free: 'bg-white border-gray-200 text-gray-300',
-    busy: 'bg-orange-50 border-orange-500 text-orange-600 shadow-sm',
-    alert: 'bg-red-50 border-red-500 text-red-600 shadow-sm animate-pulse',
-    billing: 'bg-emerald-50 border-emerald-500 text-emerald-600 shadow-sm',
+  const getStatusColor = () => {
+    if (table.requestBill) return 'bg-emerald-50 border-emerald-500 text-emerald-600';
+    if (table.callWaiter) return 'bg-red-50 border-red-500 text-red-600 animate-pulse';
+    if (table.status === 'busy') return 'bg-orange-50 border-orange-500 text-orange-600';
+    return 'bg-white border-gray-100 text-gray-200';
   };
 
   return (
     <motion.div
       whileHover={{ scale: 1.05, y: -5 }}
-      className={`relative h-32 rounded-3xl border-2 transition-all flex flex-col items-center justify-center gap-1 cursor-pointer overflow-hidden ${statusStyles[table.status]}`}
-    >
-      <span className="text-3xl font-black italic">{table.number}</span>
-      <span className="text-[9px] font-black uppercase tracking-widest opacity-80">{table.status}</span>
-      
-      {table.status !== 'free' && (
-        <div className="absolute bottom-2 right-2 flex gap-0.5">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="w-1 h-3 bg-current opacity-30 rounded-full" />
-          ))}
-        </div>
+      whileTap={{ scale: 0.95 }}
+      className={cn(
+        "relative h-40 rounded-[32px] border-2 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer overflow-hidden p-4 group",
+        getStatusColor()
       )}
+    >
+      {/* Table Visual Representation */}
+      <div className="relative w-16 h-16 flex items-center justify-center">
+        {/* Top-down view of a table */}
+        <div className={cn(
+          "absolute w-12 h-12 rounded-full border-2 transition-colors",
+          table.status === 'free' ? 'border-gray-100 bg-gray-50' : 'border-current bg-current/10'
+        )} />
+        {/* Chairs around the table */}
+        {[0, 90, 180, 270].map((deg) => (
+          <div 
+            key={deg}
+            style={{ transform: `rotate(${deg}deg) translateY(-28px)` }}
+            className={cn(
+              "absolute w-4 h-2 rounded-t-lg border-x-2 border-t-2 transition-colors",
+              table.status === 'free' ? 'border-gray-100' : 'border-current'
+            )}
+          />
+        ))}
+        <span className={cn(
+          "text-2xl font-black italic relative z-10 transition-colors",
+          table.status === 'free' ? 'text-gray-300' : 'text-current'
+        )}>
+          {table.number}
+        </span>
+      </div>
 
-      {table.status === 'busy' && (
-        <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-orange-500 text-[8px] font-black text-white rounded uppercase">R$ 124</div>
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-[9px] font-black uppercase tracking-widest opacity-60">
+          {table.requestBill ? 'Conta Solicitada' : table.callWaiter ? 'Garçom!' : table.status === 'busy' ? 'Ocupada' : 'Livre'}
+        </span>
+        
+        {table.status === 'busy' && (
+          <div className="flex items-center gap-1.5 opacity-40">
+             <div className="w-1 h-3 bg-current rounded-full" />
+             <div className="w-1 h-3 bg-current rounded-full" />
+             <div className="w-1 h-3 bg-current rounded-full" />
+          </div>
+        )}
+      </div>
+
+      {/* Floating Status Badges */}
+      {(table.requestBill || table.callWaiter) && (
+        <div className="absolute top-3 right-3">
+          <div className="w-6 h-6 rounded-full bg-current flex items-center justify-center text-white shadow-lg">
+            {table.requestBill ? <CreditCard size={10} /> : <AlertCircle size={10} />}
+          </div>
+        </div>
       )}
     </motion.div>
   );
